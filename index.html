@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Simple Countdown Timer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        h1 {
+            text-align: center;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 8vw;
+        }
+        #cd-min, #cd-sec {
+            font-size: 280%;
+        }
+        #ctrlpanel {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Countdown Timer</h1>
+    <h1 id="cd-box"><span id="cd-min">-</span> m <span id="cd-sec">--</span>.<span id="cd-dsec">-</span> s</h1>
+    <div id="ctrlpanel">
+        <input type="button" id="btn-toggle" onclick="click_toggle()" value="Toggle">
+        <input type="button" id="btn-set" onclick="click_set()" value="Set/Reset">
+        <input type="text" id="input-time" onchange="changed_time()" onkeypress="post_changed_time()" placeholder="time (3m35s)" size="10">
+        <!-- <input type="button" id="btn-start" onclick="click_start()" value="Start"> -->
+        <!-- <input type="button" id="btn-pause" onclick="click_pause()" value="Pause"> -->
+        <span id="msg"></span>
+    </div>
+    <script>
+        function getEle(id) {
+            return document.getElementById(id);
+        }
+        function setCdDisplay(timeSec) {
+            var neg = false;
+            if (timeSec < 0) {
+                timeSec = -timeSec;
+                neg = true;
+            }
+            var min = Math.floor(timeSec / 60).toString();
+            var sec = Math.floor(timeSec % 60).toString();
+            var dsec = Math.floor(timeSec * 10 % 10).toString();
+            if (sec.length == 1) {
+                sec = '0' + sec;
+            }
+            if (neg) {
+                min = '-' + min;
+            }
+            getEle("cd-min").textContent = min;
+            getEle("cd-sec").textContent = sec;
+            getEle("cd-dsec").textContent = dsec;
+        }
+        var timeRegex = /^\W*((\d+)\W*m)?\W*((\d+)\W*s?)?\W*$/;
+        function parseTime(str) {
+            var arr = timeRegex.exec(str);
+            console.log(arr);
+            var min = arr[1];
+            var sec = arr[3];
+            var result = 0;
+            if (min) {
+                result += parseInt(min) * 60 * 1000;
+            }
+            if (sec) {
+                result += parseInt(sec) * 1000;
+            }
+            return result;
+        }
+        function post_changed_time() {
+            setTimeout(changed_time, 10);
+        }
+        function changed_time() {
+            var ele = getEle("input-time")
+            try {
+                if (parseTime(ele.value) > 0) {
+                    ele.style.color = null
+                    return;
+                }
+            } catch (error) { }
+            ele.style.color = 'red';
+        }
+        changed_time();
+        var duration = null;
+        var remaining = null;
+        var rtRemaining = null;
+        var timer = null;
+
+        function setRemaining(x) {
+            remaining = x;
+        }
+
+        function getRemaining() {
+            if (rtRemaining === null)
+                return remaining;
+            var now = new Date().getTime();
+            return remaining + rtRemaining - now;
+        }
+
+        function update() {
+            setCdDisplay(getRemaining() / 1000);
+        }
+
+        function startTimer() {
+            if (!timer) {
+                rtRemaining = new Date().getTime();
+                timer = setInterval(update, 50);
+                update_toggle();
+            }
+        }
+
+        function stopTimer() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+                remaining = getRemaining();
+                rtRemaining = null;
+                update_toggle();
+            }
+        }
+
+        function click_set() {
+            stopTimer();
+            duration = parseTime(getEle("input-time").value);
+            remaining = duration;
+            setCdDisplay(remaining / 1000);
+            update_toggle();
+        }
+        
+        function click_start() {
+            if (!duration)
+                return;
+            setRemaining(remaining);
+            startTimer();
+        }
+
+        function click_pause() {
+            stopTimer();
+        }
+        var toggleStrings = ['Start', 'Stop'];
+        getEle('btn-toggle').value = toggleStrings[0];
+        function click_toggle() {
+            if (timer) {
+                click_pause();
+            } else {
+                click_start();
+            }
+        }
+        function update_toggle() {
+            getEle('btn-toggle').value = toggleStrings[timer ? 1 : 0];
+            getEle('btn-toggle').disabled = !duration;
+            getEle('input-time').disabled = timer;
+            getEle('btn-set').disabled = timer;
+        }
+        update_toggle();
+    </script>
+</body>
+</html>
