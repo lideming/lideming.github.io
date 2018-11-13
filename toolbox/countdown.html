@@ -28,7 +28,7 @@
     <div id="ctrlpanel">
         <input type="button" id="btn-toggle" onclick="click_toggle()" value="Toggle">
         <input type="button" id="btn-set" onclick="click_set()" value="Set/Reset">
-        <input type="text" id="input-time" onchange="changed_time()" onkeypress="post_changed_time()" placeholder="time (3m35s)" size="10">
+        <input type="text" id="input-time" onchange="changed_time()" onkeypress="post_changed_time()" placeholder="time (3m15s)" value="3m15s" size="10">
         <!-- <input type="button" id="btn-start" onclick="click_start()" value="Start"> -->
         <!-- <input type="button" id="btn-pause" onclick="click_pause()" value="Pause"> -->
         <span id="msg"></span>
@@ -52,6 +52,7 @@
             if (neg) {
                 min = '-' + min;
             }
+            getEle("cd-box").style.color = neg ? 'red' : null;
             getEle("cd-min").textContent = min;
             getEle("cd-sec").textContent = sec;
             getEle("cd-dsec").textContent = dsec;
