@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         h1 {
+            transition: color 1s;
             text-align: center;
             font-family: 'Courier New', Courier, monospace;
             font-size: 8vw;
@@ -20,17 +21,28 @@
             bottom: 0;
             padding: 5px;
         }
+        body {
+            transition: background 1s;
+        }
     </style>
 </head>
 <body>
     <h1>Countdown Timer</h1>
     <h1 id="cd-box"><span id="cd-min">-</span> m <span id="cd-sec">--</span>.<span id="cd-dsec">-</span> s</h1>
     <div id="ctrlpanel">
+        <div id="morepanel" hidden>
+            Timer starts from: <input type="text" id="input-time" onchange="changed_time()" onkeypress="postFunc(changed_time())" placeholder="time (?m?s)" value="3m" size="10"><br>
+            Ring plays at: <input type="text" id="input-ringtime" onchange="changed_ringtime()" onkeypress="postFunc(changed_ringtime())" placeholder="ringtime" value="30s" size="10"><br>
+            <input type="button" id="btn-sound" onclick="click_sound()" value="Test Ring">
+            <input type="button" id="btn-theme" onclick="click_theme()" value="Switch Theme"><br>
+            <small>The ringing sound is found from <a href="http://soundbible.com/1746-Ship-Bell.html">here</a> (licensed under Attribution 3.0).
+                <br>This webpage is made by Li Deming with code and ♥.</small>
+        </div>
         <input type="button" id="btn-toggle" onclick="click_toggle()" value="Toggle">
         <input type="button" id="btn-set" onclick="click_set()" value="Set/Reset">
-        <input type="text" id="input-time" onchange="changed_time()" onkeypress="post_changed_time()" placeholder="time (3m15s)" value="3m15s" size="10">
         <!-- <input type="button" id="btn-start" onclick="click_start()" value="Start"> -->
         <!-- <input type="button" id="btn-pause" onclick="click_pause()" value="Pause"> -->
+        <input type="button" id="btn-more" onclick="click_more()" value="More/Less Options">
         <span id="msg"></span>
     </div>
     <script>
@@ -57,10 +69,9 @@
             getEle("cd-sec").textContent = sec;
             getEle("cd-dsec").textContent = dsec;
         }
-        var timeRegex = /^\W*((\d+)\W*m)?\W*((\d+)\W*s?)?\W*$/;
+        var timeRegex = /^\W*?((\-?\d+)\W*m)?\W*((\-?\d+)\W*s?)?\W*$/;
         function parseTime(str) {
             var arr = timeRegex.exec(str);
-            console.log(arr);
             var min = arr[1];
             var sec = arr[3];
             var result = 0;
@@ -72,11 +83,11 @@
             }
             return result;
         }
-        function post_changed_time() {
-            setTimeout(changed_time, 10);
+        function postFunc(f) {
+            setTimeout(f, 10);
         }
         function changed_time() {
-            var ele = getEle("input-time")
+            var ele = getEle("input-time");
             try {
                 if (parseTime(ele.value) > 0) {
                     ele.style.color = null
@@ -86,10 +97,31 @@
             ele.style.color = 'red';
         }
         changed_time();
+
+        function setRing(t) {
+            ringOn = t;
+            ringed = getRemaining() < t;
+        }
+
+        function changed_ringtime() {
+            var ele = getEle("input-ringtime");
+            try {
+                var t = parseTime(ele.value);
+                ele.style.color = null;
+                setRing(t);
+                return;
+            } catch (error) { }
+            ele.style.color = 'red';
+        }
+
         var duration = null;
         var remaining = null;
         var rtRemaining = null;
+        var ringOn = 30 * 1000;
+        var ringed = false;
         var timer = null;
+
+        changed_ringtime();
 
         function setRemaining(x) {
             remaining = x;
@@ -102,14 +134,25 @@
             return remaining + rtRemaining - now;
         }
 
+        function logWithTime(str) {
+            console.log(str + ' (T = ' + remaining + ' at ' + new Date() + ')');
+        }
+
         function update() {
-            setCdDisplay(getRemaining() / 1000);
+            var rema = getRemaining();
+            setCdDisplay(rema / 1000);
+            if (ringOn !== null && !ringed && ringOn >= rema) {
+                ringed = true;
+                playSound();
+                logWithTime("Ring played.");
+            }
         }
 
         function startTimer() {
             if (!timer) {
                 rtRemaining = new Date().getTime();
                 timer = setInterval(update, 50);
+                logWithTime("Started.");
                 update_toggle();
             }
         }
@@ -120,18 +163,24 @@
                 timer = null;
                 remaining = getRemaining();
                 rtRemaining = null;
+                logWithTime("Stopped.");
                 update_toggle();
             }
         }
 
-        function click_set() {
-            stopTimer();
-            duration = parseTime(getEle("input-time").value);
-            remaining = duration;
+        function setDuration(dura) {
+            duration = dura;
+            remaining = dura;
             setCdDisplay(remaining / 1000);
+            setRing(ringOn);
             update_toggle();
         }
-        
+
+        function click_set() {
+            stopTimer();
+            setDuration(parseTime(getEle("input-time").value));
+        }
+
         function click_start() {
             if (!duration)
                 return;
@@ -142,7 +191,7 @@
         function click_pause() {
             stopTimer();
         }
-        var toggleStrings = ['Start', 'Stop'];
+        var toggleStrings = ['START', 'STOP'];
         getEle('btn-toggle').value = toggleStrings[0];
         function click_toggle() {
             if (timer) {
@@ -158,6 +207,44 @@
             getEle('btn-set').disabled = timer;
         }
         update_toggle();
+
+        var soundPath = 'countdown-ring.mp3';
+        var audio = new Audio(soundPath);
+        audio.preload = true;
+        function playSound() {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.play();
+        }
+        
+        function click_sound() {
+            playSound();
+        }
+
+        function prepareSound() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', soundPath, true);
+        }
+
+        prepareSound();
+
+        var moreLessStrings = ['More Options', 'Less Options'];
+        getEle('btn-more').value = moreLessStrings[getEle('morepanel').hidden ? 0 : 1];
+        function click_more() {
+            var nowHidden = getEle('morepanel').hidden;
+            getEle('btn-more').value = moreLessStrings[(getEle('morepanel').hidden = !nowHidden) ? 0 : 1];
+        }
+
+        var themeBlack = false;
+        function renderTheme() {
+            document.body.style.color = themeBlack ? 'white' : 'black';
+            document.body.style.backgroundColor = themeBlack ? 'black' : 'white';
+        }
+        function click_theme() {
+            themeBlack ^= true;
+            renderTheme();
+        }
+        renderTheme();
     </script>
 </body>
 </html>
