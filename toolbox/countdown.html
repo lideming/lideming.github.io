@@ -20,6 +20,7 @@
             left: 0;
             bottom: 0;
             padding: 5px;
+            transition: opacity 1s;
         }
         body {
             transition: background 1s;
@@ -48,6 +49,9 @@
     <script>
         function getEle(id) {
             return document.getElementById(id);
+        }
+        function showMsg(text) {
+            getEle('msg').textContent = text;
         }
         function setCdDisplay(timeSec) {
             var neg = false;
@@ -149,22 +153,24 @@
         }
 
         function startTimer() {
-            if (!timer) {
+            if (timer === null) {
                 rtRemaining = new Date().getTime();
                 timer = setInterval(update, 50);
                 logWithTime("Started.");
                 update_toggle();
+                setAutoHide(true);
             }
         }
 
         function stopTimer() {
-            if (timer) {
+            if (timer !== null) {
                 clearInterval(timer);
                 timer = null;
                 remaining = getRemaining();
                 rtRemaining = null;
                 logWithTime("Stopped.");
                 update_toggle();
+                setAutoHide(false);
             }
         }
 
@@ -211,6 +217,11 @@
         var soundPath = 'countdown-ring.mp3';
         var audio = new Audio(soundPath);
         audio.preload = true;
+        audio.onerror = function (e) {
+            var msg = 'Failed to load the sound!';
+            console.warn(msg, e);
+            showMsg(msg);
+        }
         function playSound() {
             audio.pause();
             audio.currentTime = 0;
@@ -245,6 +256,45 @@
             renderTheme();
         }
         renderTheme();
+
+        var autoHide = false;
+        var autoHideTimer = null;
+
+        function setHide(hide) {
+            getEle('ctrlpanel').style.opacity = hide ? 0 : 1;
+        }
+
+        function setAutoHide(hide) {
+            autoHide = hide;
+            if (hide) {
+                if(autoHideTimer !== null)
+                    clearTimeout(autoHideTimer);
+                autoHideTimer = setTimeout(function () {
+                    setHide(true);
+                }, 3000);
+            } else {
+                if(autoHideTimer !== null)
+                    clearTimeout(autoHideTimer);
+                autoHideTimer = null;
+                setHide(false);
+            }
+        }
+
+        function tempUnhide() {
+            if (autoHide) {
+                setHide(false);
+                setAutoHide(true);
+            }
+        }
+
+        function onMouseActions (e) {
+            tempUnhide();
+        }
+
+        document.addEventListener('mousemove', onMouseActions);
+        document.addEventListener('mousedown', onMouseActions);
+        document.addEventListener('touchstart', onMouseActions);
+        document.addEventListener('keydown', onMouseActions);
     </script>
 </body>
 </html>
