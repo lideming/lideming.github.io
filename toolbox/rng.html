@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Random Number Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <h1>This page is still working in progress, but it should work simply:</h1>
+    <h2 id="number">(It looks like that JavaScript is not enabled.)</h2>
+    <h2>(Regenerate by page reloading)</h2>
+    <script>
+        var rd = Math.random();
+        document.getElementById('number').innerHTML = 'rd = Math.random()'
+            + '<br>rd -> ' + rd
+            + '<br>Math.floor(rd * 10000000) -> ' + Math.floor(rd * 10000000);
+    </script>
+</body>
+</html>
