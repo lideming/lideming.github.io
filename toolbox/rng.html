@@ -5,16 +5,61 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Random Number Generator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            text-align: center;
+        }
+        .config-item {
+            margin: .2rem;
+        }
+        .config-label {
+            display: inline-block;
+            width: 5em;
+        }
+        .num-index {
+            display: block;
+            position: absolute;
+            left: 0;
+            opacity: .5;
+        }
+        #btn-gen {
+            font-size: 200%;
+            margin-bottom: .5em;
+        }
+        #number {
+            position: relative;
+            max-width: 10em;
+            margin-left: auto;
+            margin-right: auto;
+            background: #cccccc;
+        }
+    </style>
 </head>
 <body>
-    <h1>This page is still working in progress, but it should work simply:</h1>
-    <h2 id="number">(It looks like that JavaScript is not enabled.)</h2>
-    <h2>(Regenerate by page reloading)</h2>
+    <h1>Random Number Generator</h1>
+    <h2 id="number">(This webpage needs JavaScript to function.)</h2>
+    <input id="btn-gen" type="button" value="Generate" onclick="generate()">
+    <div class="config-item"><span class="config-label">Count:</span> <input id="input-count" type="number" value="1"></div>
+    <div class="config-item"><span class="config-label">Min:</span> <input id="input-min" type="number" value="1"></div>
+    <div class="config-item"><span class="config-label">Max:</span> <input id="input-max" type="number" value="100"></div>
     <script>
-        var rd = Math.random();
-        document.getElementById('number').innerHTML = 'rd = Math.random()'
-            + '<br>rd -> ' + rd
-            + '<br>Math.floor(rd * 10000000) -> ' + Math.floor(rd * 10000000);
+        function generate() {
+            var count = +document.getElementById('input-count').value;
+            var min = +document.getElementById('input-min').value;
+            var max = +document.getElementById('input-max').value;
+            var rangeSize = max - min + 1;
+            var result = "";
+            if (count <= 0 || rangeSize <= 0) {
+                result = "(Wrong settings)";
+            } else {
+                for (let i = 0; i < count; i++) {
+                    var r = Math.floor(Math.random() * rangeSize) + min;
+                    result += '<span class="num-index">(' + (i + 1) + ')</span>' + r + '<br>';
+                }
+            }
+            document.getElementById('number').innerHTML = result;
+        }
+        generate();
     </script>
 </body>
 </html>
