@@ -16,19 +16,39 @@
             background: #94ddff;
             color: black;
             padding: .5em 1em;
+            animation: in .8s;
         }
         p, ul, li {
             margin: 1em;
+            animation: in .8s;
+        }
+        @keyframes in {
+            from {
+                /* background: rgba(127, 127, 127, 100); */
+                transform: translate(-3em, -1em) rotate(-10deg);
+                opacity: 0;
+            }
+            to {
+                
+            }
+        }
+        a {
+            color: #0091d4;
+        }
+        a:hover {
+            color: #00aeff;
         }
     </style>
 </head>
 <body>
     <h1 style="text-align: center; margin: 0;">Public Toolbox by Li Deming</h1>
-    <p>Hi, I am Li Deming, a student, a software developer. No more self-introduction because this is a (so-called) toolbox.</p>
+    <p>Hi, I am Li Deming, a student, a software developer. No more self-introduction because this is not a 'about' page but a 'toolbox'.</p>
     <p>I know. This frontpage is so ugly.
         <br>(UPDATE: now it's better but still ugly.)
         <br>(UPDATE 2: OMG such s***ty color scheme.)</p>
-    <p>But it is a page of a website and written in standard HTML for real.</p>
+    <p>But it's really a <a href="https://motherfuckingwebsite.com/">Moth*****king Website</a>.
+        <br>It loads really fast, and functions well on both your PC and mobile phone.
+    </p>
     <p>I am not going to write any fancy code to make it fancy. I hate front-end!</p>
     <p>Just kidding, it's just under construction. I did write such code.</p>
     <h2>Tools</h2>
@@ -40,7 +60,7 @@
                 (Try <a href="toolbox/rng.html" onclick="openPopup(this, event)">open as popup</a>)</li>
     </ul>
     <p>More tools are <del>(maybe not)</del> coming soon!</p>
-    <p><a href="https://github.com/lideming/lideming.github.io">The Github repo of this website</a></p>
+    <small><p style="text-align: right;"><a href="https://github.com/lideming/lideming.github.io">Hosted by Github</a></p></small>
     <script>
         function openPopup(t, e) {
             window.open(t.href, null, 'width=600,height=400,toolbar=no');
