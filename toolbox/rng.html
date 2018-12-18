@@ -10,11 +10,13 @@
             text-align: center;
         }
         .config-item {
-            margin: .2rem;
+            margin: .2rem auto;
+            text-align: right;
+            max-width: 15em;
         }
         .config-label {
-            display: inline-block;
-            width: 5em;
+            /* display: inline-block; */
+            /* width: 5em; */
         }
         .num-index {
             display: block;
@@ -28,7 +30,7 @@
         }
         #number {
             position: relative;
-            max-width: 10em;
+            max-width: 15em;
             margin-left: auto;
             margin-right: auto;
             background: #cccccc;
@@ -39,23 +41,43 @@
     <h1>Random Number Generator</h1>
     <h2 id="number">(This webpage needs JavaScript to function.)</h2>
     <input id="btn-gen" type="button" value="Generate" onclick="generate()">
-    <div class="config-item"><span class="config-label">Count:</span> <input id="input-count" type="number" value="1"></div>
-    <div class="config-item"><span class="config-label">Min:</span> <input id="input-min" type="number" value="1"></div>
-    <div class="config-item"><span class="config-label">Max:</span> <input id="input-max" type="number" value="100"></div>
+    <div class="config-item"><label class="config-label">Count: <input id="input-count" type="number" value="1"></label></div>
+    <div class="config-item"><label class="config-label">Min: <input id="input-min" type="number" value="1"></label></div>
+    <div class="config-item"><label class="config-label">Max: <input id="input-max" type="number" value="100"></label></div>
+    <div class="config-item"><label class="config-label"><input id="input-nodup" type="checkbox"> No duplicates<br>(when count > 1)</label></div>
     <script>
         function generate() {
             var count = +document.getElementById('input-count').value;
             var min = +document.getElementById('input-min').value;
             var max = +document.getElementById('input-max').value;
+            var nodup = !!document.getElementById('input-nodup').checked;
             var rangeSize = max - min + 1;
             var result = "";
-            if (count <= 0 || rangeSize <= 0) {
-                result = "(Wrong settings)";
+            if (count <= 0) {
+                result = "E: Wrong count";
+            } else if (rangeSize <= 0) {
+                result = "E: Wrong range";
+            } else if (nodup && rangeSize < count) {
+                result = "E: NoDup & range < count";
             } else {
+                var results = [];
                 for (let i = 0; i < count; i++) {
-                    var r = Math.floor(Math.random() * rangeSize) + min;
+                    do {
+                        var r = Math.floor(Math.random() * rangeSize) + min;
+                        var again = false;
+                        if (nodup) {
+                            for (let ri = 0; ri < results.length; ri++) {
+                                if (results[ri] == r) {
+                                    again = true;
+                                    break;
+                                }
+                            }
+                        }
+                    } while (again);
+                    results.push(r);
                     result += '<span class="num-index">(' + (i + 1) + ')</span>' + r + '<br>';
                 }
+                console.log('Result at ' + new Date(), results);
             }
             document.getElementById('number').innerHTML = result;
         }
