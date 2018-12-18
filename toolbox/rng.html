@@ -11,12 +11,12 @@
         }
         .config-item {
             margin: .2rem auto;
-            text-align: right;
             max-width: 15em;
         }
-        .config-label {
-            /* display: inline-block; */
-            /* width: 5em; */
+        .config-label-left {
+            display: inline-block;
+            width: 5em;
+            text-align: right;
         }
         .num-index {
             display: block;
@@ -41,16 +41,18 @@
     <h1>Random Number Generator</h1>
     <h2 id="number">(This webpage needs JavaScript to function.)</h2>
     <input id="btn-gen" type="button" value="Generate" onclick="generate()">
-    <div class="config-item"><label class="config-label">Count: <input id="input-count" type="number" value="1"></label></div>
-    <div class="config-item"><label class="config-label">Min: <input id="input-min" type="number" value="1"></label></div>
-    <div class="config-item"><label class="config-label">Max: <input id="input-max" type="number" value="100"></label></div>
+    <div class="config-item"><label class="config-label-left">Count: </label><input id="input-count" type="number" value="1"></div>
+    <div class="config-item"><label class="config-label-left">Min: </label><input id="input-min" type="number" value="1"></div>
+    <div class="config-item"><label class="config-label-left">Max: </label><input id="input-max" type="number" value="100"></div>
     <div class="config-item"><label class="config-label"><input id="input-nodup" type="checkbox"> No duplicates<br>(when count > 1)</label></div>
+    <div class="config-item"><label class="config-label"><input id="input-sort" type="checkbox"> Sorting</label></div>
     <script>
         function generate() {
             var count = +document.getElementById('input-count').value;
             var min = +document.getElementById('input-min').value;
             var max = +document.getElementById('input-max').value;
             var nodup = !!document.getElementById('input-nodup').checked;
+            var sort = !!document.getElementById('input-sort').checked;
             var rangeSize = max - min + 1;
             var result = "";
             if (count <= 0) {
@@ -75,9 +77,17 @@
                         }
                     } while (again);
                     results.push(r);
-                    result += '<span class="num-index">(' + (i + 1) + ')</span>' + r + '<br>';
+                }
+                if (sort) {
+                    results.sort(function (a, b) {
+                        return a - b;
+                    });
                 }
                 console.log('Result at ' + new Date(), results);
+                for (let i = 0; i < results.length; i++) {
+                    const r = results[i];
+                    result += '<span class="num-index">(' + (i + 1) + ')</span>' + r + '<br>';
+                }
             }
             document.getElementById('number').innerHTML = result;
         }
