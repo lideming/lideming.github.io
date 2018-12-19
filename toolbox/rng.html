@@ -12,8 +12,15 @@
         .config-item {
             margin: .2rem auto;
             max-width: 15em;
+            transition: background .2s;
         }
-        .config-label-left {
+        .config-item:hover {
+            background: #ddd;
+        }
+        .config-edit {
+            width: 7em;
+        }
+        .config-label-edit {
             display: inline-block;
             width: 5em;
             text-align: right;
@@ -24,16 +31,18 @@
             left: 0;
             opacity: .5;
         }
+        .hide-index > .num-index {
+            display: none;
+        }
         #btn-gen {
             font-size: 200%;
             margin-bottom: .5em;
         }
         #number {
             position: relative;
-            max-width: 15em;
+            max-width: 10em;
             margin-left: auto;
             margin-right: auto;
-            background: #cccccc;
         }
     </style>
 </head>
@@ -41,11 +50,15 @@
     <h1>Random Number Generator</h1>
     <h2 id="number">(This webpage needs JavaScript to function.)</h2>
     <input id="btn-gen" type="button" value="Generate" onclick="generate()">
-    <div class="config-item"><label class="config-label-left">Count: </label><input id="input-count" type="number" value="1"></div>
-    <div class="config-item"><label class="config-label-left">Min: </label><input id="input-min" type="number" value="1"></div>
-    <div class="config-item"><label class="config-label-left">Max: </label><input id="input-max" type="number" value="100"></div>
-    <div class="config-item"><label class="config-label"><input id="input-nodup" type="checkbox"> No duplicates<br>(when count > 1)</label></div>
-    <div class="config-item"><label class="config-label"><input id="input-sort" type="checkbox"> Sorting</label></div>
+    <div class="config-item"><label class="config-label-edit">Count:</label>
+        <input class="config-edit" id="input-count" type="number" value="1"></div>
+    <div class="config-item"><label class="config-label-edit">Min:</label>
+        <input class="config-edit" id="input-min" type="number" value="1"></div>
+    <div class="config-item"><label class="config-label-edit">Max:</label>
+        <input class="config-edit" id="input-max" type="number" value="100"></div>
+    <div class="config-item"><label class="config-label-cb"><input id="input-index" type="checkbox" onclick="checkIndex()"> Index</label></div>
+    <div class="config-item"><label class="config-label-cb"><input id="input-sort" type="checkbox"> Sorting</label></div>
+    <div class="config-item"><label class="config-label-cb"><input id="input-nodup" type="checkbox"> No duplicates<br>(when count > 1)</label></div>
     <script>
         function generate() {
             var count = +document.getElementById('input-count').value;
@@ -86,11 +99,21 @@
                 console.log('Result at ' + new Date(), results);
                 for (let i = 0; i < results.length; i++) {
                     const r = results[i];
-                    result += '<span class="num-index">(' + (i + 1) + ')</span>' + r + '<br>';
+                    result += '<span class="num-index">[' + (i + 1) + ']</span>' + r + '<br>';
                 }
             }
             document.getElementById('number').innerHTML = result;
         }
+        function checkIndex() {
+            var index = !document.getElementById('input-index').checked;
+            var cl = document.getElementById('number').classList;
+            if (index) {
+                cl.add("hide-index");
+            } else {
+                cl.remove("hide-index");
+            }
+        }
+        checkIndex();
         generate();
     </script>
 </body>
