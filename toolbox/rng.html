@@ -12,10 +12,6 @@
         .config-item {
             margin: .2rem auto;
             max-width: 15em;
-            transition: background .2s;
-        }
-        .config-item:hover {
-            background: #ddd;
         }
         .config-edit {
             width: 7em;
@@ -24,6 +20,12 @@
             display: inline-block;
             width: 5em;
             text-align: right;
+        }
+        .config-label-cb {
+            transition: color .2s;
+        }
+        .config-label-cb:hover {
+            color: #00aeff;
         }
         .num-index {
             display: block;
@@ -75,27 +77,7 @@
             } else if (nodup && rangeSize < count) {
                 result = "E: NoDup & range < count";
             } else {
-                var results = [];
-                for (let i = 0; i < count; i++) {
-                    do {
-                        var r = Math.floor(Math.random() * rangeSize) + min;
-                        var again = false;
-                        if (nodup) {
-                            for (let ri = 0; ri < results.length; ri++) {
-                                if (results[ri] == r) {
-                                    again = true;
-                                    break;
-                                }
-                            }
-                        }
-                    } while (again);
-                    results.push(r);
-                }
-                if (sort) {
-                    results.sort(function (a, b) {
-                        return a - b;
-                    });
-                }
+                var results = generateCore(min, rangeSize, count, nodup, sort);
                 console.log('Result at ' + new Date(), results);
                 for (let i = 0; i < results.length; i++) {
                     const r = results[i];
@@ -103,6 +85,30 @@
                 }
             }
             document.getElementById('number').innerHTML = result;
+        }
+        function generateCore(min, rangeSize, count, nodup, sort) {
+            var results = [];
+            for (let i = 0; i < count; i++) {
+                do {
+                    var r = Math.floor(Math.random() * rangeSize) + min;
+                    var again = false;
+                    if (nodup) {
+                        for (let ri = 0; ri < results.length; ri++) {
+                            if (results[ri] == r) {
+                                again = true;
+                                break;
+                            }
+                        }
+                    }
+                } while (again);
+                results.push(r);
+            }
+            if (sort) {
+                results.sort(function (a, b) {
+                    return a - b;
+                });
+            }
+            return results;
         }
         function checkIndex() {
             var index = !document.getElementById('input-index').checked;
