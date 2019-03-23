@@ -280,14 +280,21 @@ input:checked+.slider:before {
     margin: 0;
 }
 
-.fill {
+.reveal .fill {
     height: 100%;
     margin: 0 !important;
     padding: 0 !important;
 }
 
-.scroll {
-    overflow-y: scroll;
+.reveal .scroll:not(.slide-background), .reveal .scroll-pad:not(.slide-background) {
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.reveal .scroll-pad:not(.slide-background) {
+    padding-top: 1em !important;
+    padding-bottom: 1em !important;
+    padding-right: .5em !important;
 }
 
 .reveal .blank-line {
