@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -10,62 +11,97 @@
             max-width: 50em;
             margin: 0 auto;
             padding: 8px;
-            color: #232323
+            color: #232323;
+            font-family: sans-serif;
         }
-        h1, h2 {
+
+        h1,
+        h2 {
             background: #94ddff;
             color: black;
             padding: .5em 1em;
             animation: in .8s;
         }
-        p, ul, li {
+
+        p,
+        ul,
+        li {
             margin: 1em;
             animation: in .8s;
         }
+
         @keyframes in {
             from {
                 /* background: rgba(127, 127, 127, 100); */
                 transform: translate(-3em, -1em) rotate(-10deg);
                 opacity: 0;
             }
-            to {
-                
-            }
+
+            to {}
         }
+
         a {
             color: #0091d4;
         }
+
         a:hover {
             color: #00aeff;
         }
     </style>
 </head>
+
 <body>
     <h1 style="text-align: center; margin: 0;">Public Toolbox by Li Deming</h1>
-    <p>Hi, I am Li Deming, a student, a software developer. No more self-introduction because this is not a 'about' page but a 'toolbox'.</p>
+    <p>Hi, I am Li Deming, a student, a software developer. No more self-introduction because this is not a 'about' page
+        but a 'toolbox'.</p>
     <p>I know. This frontpage is so ugly.
-        <br>(UPDATE: now it's better but still ugly.)
-        <br>(UPDATE 2: OMG such s***ty color scheme.)</p>
+        <br>(UPDATE: now it's a little better, just a little.)
+        <br>(UPDATE2: color scheme is updated.)</p>
     <p>But it's really a <a href="https://motherfuckingwebsite.com/">Moth*****king Website</a>.
-        <br>It loads really fast, and functions well on both your PC and mobile phone.
+        <br>It loads really fast, and functions well on both your PC and mobile phone. It even (basically) works on old browsers (e.g. IE6).
     </p>
-    <p>I am not going to write any fancy code to make it fancy. I hate front-end!</p>
+    <p>I am not going to write any fancy code to make it "looks like a modern website".</p>
     <p>Just kidding, it's just under construction. I did write such code.</p>
     <h2>Tools</h2>
-    <p>Here <del>are some tools</del> is some tool you and I may use:</p>
+    <p>Here are some tools:</p>
     <ul>
-        <li><a href="toolbox/countdown.html">Countdown Timer</a>
-            (Try <a href="toolbox/countdown.html" onclick="openPopup(this, event)">open as popup</a>)</li>
-            <li><a href="toolbox/rng.html">Random Number Generator</a>
-                (Try <a href="toolbox/rng.html" onclick="openPopup(this, event)">open as popup</a>)</li>
+        <li><a class="open-popup" href="toolbox/countdown.html">Countdown Timer</a></li>
+        <li><a class="open-popup" href="toolbox/rng.html">Random Number Generator</a></li>
+        <li>(Coming soon) Random Seat Selector</li>
     </ul>
-    <p>More tools are <del>(maybe not)</del> coming soon!</p>
-    <small><p style="text-align: right;"><a href="https://github.com/lideming/lideming.github.io">Hosted by Github</a></p></small>
+    <p>More tools may be added in the future!</p>
+    <small>
+        <p style="text-align: right;"><a href="https://github.com/lideming/lideming.github.io">Hosted on Github</a></p>
+    </small>
     <script>
+        Node.prototype.appendAfter = function (ele) {
+            this.parentNode.insertBefore(ele, this.nextSibling);
+            return ele;
+        };
+        Node.prototype.appendTextAfter = function (text) {
+            var node = document.createTextNode(text);
+            this.parentNode.insertBefore(node, this.nextSibling);
+            return node;
+        };
+        NodeList.prototype.forEach = NodeList.prototype.forEach || function (cb) {
+            for (var i = 0; i < this.length; i++) {
+                var node = this[i];
+                cb(node);
+            }
+        };
+        document.querySelectorAll('.open-popup').forEach(function (x) {
+            var a = document.createElement('a');
+            a.href = x.href;
+            a.onclick = function () {openPopup(this, event)};
+            a.textContent = 'open as popup';
+            a.title = 'May not work, depends on your browser.';
+            x.appendTextAfter(' (or ').appendAfter(a).appendTextAfter(')');
+        });
         function openPopup(t, e) {
             window.open(t.href, null, 'width=600,height=400,toolbar=no');
             e.preventDefault();
         }
     </script>
 </body>
+
 </html>
