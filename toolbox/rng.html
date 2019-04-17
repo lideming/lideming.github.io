@@ -8,6 +8,7 @@
     <style>
         body {
             text-align: center;
+            font-family: sans-serif;
         }
         .config-item {
             margin: .2rem auto;
@@ -46,12 +47,70 @@
             margin-left: auto;
             margin-right: auto;
         }
+
+        .btn {
+            display: flex;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            transition: all .3s;
+            padding: .3em;
+            min-width: 3em;
+            line-height: 1em;
+            /* margin: .5em; */
+            background: #2196F3;
+            color: white;
+            /* border-radius: .3em; */
+            box-shadow: 0 0 .3em gray;
+            cursor: pointer;
+            -ms-user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn.inline {
+            display: inline-flex;
+        }
+
+        .btn.btn-down {
+            cursor: default;
+        }
+
+        .btn:hover {
+            transition: all .05s;
+            background: rgb(50, 173, 255);
+        }
+
+        .btn.btn-down,
+        .btn:active {
+            transition: all .05s;
+            background: rgb(0, 225, 255);
+            /* background: darkgray; */
+            box-shadow: 0 0 .1em gray;
+        }
+
+        .btn-progress {
+            transition: opacity .3s;
+            position: absolute;
+            background: black;
+            opacity: 0;
+            bottom: 0;
+            left: 0;
+            height: .2em;
+        }
+
+        .btn-progress.btn-progress-show {
+            opacity: .5;
+        }
     </style>
 </head>
 <body>
     <h1>Random Number Generator</h1>
     <h2 id="number">(This webpage needs JavaScript to function.)</h2>
-    <input id="btn-gen" type="button" value="Generate" onclick="generate()">
+    <div id="btn-gen" class="btn inline" style="padding: .3em 1em;" onclick="generate()">Generate</div>
     <div class="config-item"><label class="config-label-edit">Count:</label>
         <input class="config-edit" id="input-count" type="number" value="1"></div>
     <div class="config-item"><label class="config-label-edit">Min:</label>

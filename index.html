@@ -13,6 +13,7 @@
             padding: 8px;
             color: #232323;
             font-family: sans-serif;
+            text-align: justify;
         }
 
         h1,
@@ -51,9 +52,8 @@
 </head>
 
 <body>
-    <h1 style="text-align: center; margin: 0;">Public Toolbox by Li Deming</h1>
-    <p>Hi, I am Li Deming, a student, a software developer. No more self-introduction because this is not a 'about' page
-        but a 'toolbox'.</p>
+    <h1 style="text-align: center; margin: 0;">Yet A Public Toolbox</h1>
+    <p>Hi, welcome to my 'toolbox'.</p>
     <p>I know. This frontpage is so ugly.
         <br>(UPDATE: now it's a little better, just a little.)
         <br>(UPDATE2: color scheme is updated.)</p>
@@ -95,7 +95,7 @@
             a.onclick = function () {openPopup(this, event)};
             a.textContent = 'open as popup';
             a.title = 'May not work, depends on your browser.';
-            x.appendTextAfter(' (or ').appendAfter(a).appendTextAfter(')');
+            x.appendTextAfter(' (').appendAfter(a).appendTextAfter(')');
         });
         function openPopup(t, e) {
             window.open(t.href, null, 'width=600,height=400,toolbar=no');

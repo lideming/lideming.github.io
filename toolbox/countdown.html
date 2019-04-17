@@ -21,6 +21,7 @@
             bottom: 0;
             padding: 5px;
             transition: opacity 1s;
+            font-family: sans-serif;
         }
         body {
             transition: background 1s;
@@ -31,6 +32,64 @@
         a:hover {
             color: #00aeff;
         }
+        
+        .btn {
+            display: flex;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            transition: all .3s;
+            padding: .3em;
+            min-width: 3em;
+            line-height: 1em;
+            /* margin: .5em; */
+            background: #2196F3;
+            color: white;
+            /* border-radius: .3em; */
+            box-shadow: 0 0 .3em gray;
+            cursor: pointer;
+            -ms-user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn.inline {
+            display: inline-flex;
+        }
+
+        .btn.btn-down {
+            cursor: default;
+        }
+
+        .btn:hover {
+            transition: all .05s;
+            background: rgb(50, 173, 255);
+        }
+
+        .btn.btn-down,
+        .btn:active {
+            transition: all .05s;
+            background: rgb(0, 225, 255);
+            /* background: darkgray; */
+            box-shadow: 0 0 .1em gray;
+        }
+
+        .btn-progress {
+            transition: opacity .3s;
+            position: absolute;
+            background: black;
+            opacity: 0;
+            bottom: 0;
+            left: 0;
+            height: .2em;
+        }
+
+        .btn-progress.btn-progress-show {
+            opacity: .5;
+        }
     </style>
 </head>
 <body>
@@ -40,17 +99,17 @@
         <div id="morepanel" hidden>
             Timer starts from: <input type="text" id="input-time" onchange="changed_time()" onkeypress="postFunc(changed_time())" placeholder="time (?m?s)" value="3m" size="10"><br>
             Ring plays at: <input type="text" id="input-ringtime" onchange="changed_ringtime()" onkeypress="postFunc(changed_ringtime())" placeholder="ringtime" value="30s" size="10"><br>
-            <input type="button" id="btn-sound" onclick="click_sound()" value="Test Ring">
-            <input type="button" id="btn-theme" onclick="click_theme()" value="Switch Theme"><br>
+            <div class="btn inline" id="btn-sound" onclick="click_sound()">Test Ring</div>
+            <div class="btn inline" id="btn-theme" onclick="click_theme()">Switch Theme</div><br>
             <small>The ringing sound is found from <a href="http://soundbible.com/1746-Ship-Bell.html">here</a> (licensed under Attribution 3.0).
                 <br>This webpage is made by Li Deming with code and ♥.
                 <br><a href="#popup" onclick="openPopup(this, event)">Try open as popup</a></small>
         </div>
-        <input type="button" id="btn-toggle" onclick="click_toggle()" value="Toggle">
-        <input type="button" id="btn-set" onclick="click_set()" value="Set/Reset">
-        <!-- <input type="button" id="btn-start" onclick="click_start()" value="Start"> -->
-        <!-- <input type="button" id="btn-pause" onclick="click_pause()" value="Pause"> -->
-        <input type="button" id="btn-more" onclick="click_more()" value="More/Less Options">
+        <div class="btn inline" id="btn-toggle" onclick="click_toggle()">Toggle</div>
+        <div class="btn inline" id="btn-set" onclick="click_set()">Set/Reset</div>
+        <!-- <div class="btn inline" id="btn-start" onclick="click_start()">Start</div> -->
+        <!-- <div class="btn inline" id="btn-pause" onclick="click_pause()">Pause</div> -->
+        <div class="btn inline" id="btn-more" onclick="click_more()">More/Less Options</div>
         <span id="msg"></span>
     </div>
     <script>
@@ -209,7 +268,7 @@
             stopTimer();
         }
         var toggleStrings = ['START', 'STOP'];
-        getEle('btn-toggle').value = toggleStrings[0];
+        getEle('btn-toggle').textContent = toggleStrings[0];
         function click_toggle() {
             if (timer) {
                 click_pause();
@@ -218,7 +277,7 @@
             }
         }
         function update_toggle() {
-            getEle('btn-toggle').value = toggleStrings[timer ? 1 : 0];
+            getEle('btn-toggle').textContent = toggleStrings[timer ? 1 : 0];
             getEle('btn-toggle').disabled = !duration;
             getEle('input-time').disabled = timer;
             getEle('btn-set').disabled = timer;
@@ -251,10 +310,10 @@
         prepareSound();
 
         var moreLessStrings = ['More Options', 'Less Options'];
-        getEle('btn-more').value = moreLessStrings[getEle('morepanel').hidden ? 0 : 1];
+        getEle('btn-more').textContent = moreLessStrings[getEle('morepanel').hidden ? 0 : 1];
         function click_more() {
             var nowHidden = getEle('morepanel').hidden;
-            getEle('btn-more').value = moreLessStrings[(getEle('morepanel').hidden = !nowHidden) ? 0 : 1];
+            getEle('btn-more').textContent = moreLessStrings[(getEle('morepanel').hidden = !nowHidden) ? 0 : 1];
         }
 
         var themeBlack = false;
