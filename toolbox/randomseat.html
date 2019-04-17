@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Random Seat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            font-family: sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .seats {
+            font-size: 5vw;
+            position: relative;
+        }
+
+        .seat {
+            position: absolute;
+            background: rgb(0, 120, 156);
+            /* border: 1px solid black; */
+            width: 1.6em;
+            height: 1em;
+            line-height: 1em;
+            transition: background .3s;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .seat.current {
+            background: rgb(255, 239, 147);
+            transition: none;
+        }
+
+        .seat.final {
+            background: rgb(255, 165, 112);
+            transition: none;
+        }
+
+        .seat.disabled {
+            background: rgb(97, 97, 97);
+            transition: background .1s;
+        }
+
+        .seat:active {
+            background: rgb(0, 225, 255);
+            transition: background .1s;
+        }
+
+        .btn {
+            display: flex;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            transition: all .3s;
+            padding: .3em;
+            min-width: 3em;
+            line-height: 1em;
+            /* margin: .5em; */
+            background: #2196F3;
+            color: white;
+            /* border-radius: .3em; */
+            box-shadow: 0 0 .3em gray;
+            cursor: pointer;
+            -ms-user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn.btn-down {
+            cursor: default;
+        }
+
+        .btn:hover {
+            transition: all .05s;
+            background: rgb(50, 173, 255);
+        }
+
+        .btn.btn-down,
+        .btn:active {
+            transition: all .05s;
+            background: rgb(0, 225, 255);
+            /* background: darkgray; */
+            box-shadow: 0 0 .1em gray;
+        }
+
+        .btn-progress {
+            transition: opacity .3s;
+            position: absolute;
+            background: black;
+            opacity: 0;
+            bottom: 0;
+            left: 0;
+            height: .2em;
+        }
+
+        .btn-progress.btn-progress-show {
+            opacity: .5;
+        }
+
+        .option-group {
+            background: #ddd;
+            padding: .5em;
+        }
+
+        .option-group-title {
+            font-size: 110%;
+            font-weight: bold;
+            padding-bottom: .3em;
+            text-align: center;
+        }
+
+        .ctrl-item {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin: .2em 0;
+        }
+
+        .ctrl-item input {
+            width: 5em;
+        }
+    </style>
+</head>
+
+<body>
+    <div
+        style="display: flex; flex-direction: column; align-items: center; justify-content: space-around; min-height: 100vh;">
+        <div style="font-size: 3vw; padding: .6em 2em; margin: .1em; border: .1em solid black; background: #ccc;">
+            Platform</div>
+        <div class="seats" id="seats"></div>
+        <div class="btn" id="picker-btn" style="font-size: 200%; margin: .1em; width: 4em; " onclick="app.run()">Start!
+        </div>
+        <div id="seatctrl" style="padding: 1em;">
+            <div class="option-group">
+                <div class="option-group-title">Quick Setting</div>
+                <label class="ctrl-item">Rows (height) <input type="number" min="1" id="seatinput-h" value="8"></label>
+                <label class="ctrl-item">Columns (width) <input type="number" min="1" id="seatinput-w"
+                        value="8"></label>
+                <label class="ctrl-item">Group columns <input type="number" min="1" id="seatinput-g" value="2"></label>
+                <div class="btn" onclick="quicksetting()">Apply</div>
+            </div>
+        </div>
+        <div class="btn" id='ctrltoggle' style="position: fixed; left: 0; bottom: 0;" onclick="toggleSettings()">
+            Settings</div>
+    </div>
+    <script>
+        'use strict';
+        var RDSeat = function (container) {
+            var thiz = this;
+            var RNG = function () {
+                var rngbuf = new Uint32Array(32);
+                var rngcur = 32;
+                this.getRandomInt = function () {
+                    if (rngcur == rngbuf.length) {
+                        crypto.getRandomValues(rngbuf);
+                        rngcur = 0;
+                    }
+                    var r = rngbuf[rngcur++];
+                    return r;
+                };
+            };
+            var rng = new RNG();
+            var pointsFromRects = function (arr) {
+                const points = [];
+                for (const rect of arr) {
+                    const [x1, y1, x2, y2] = rect;
+                    for (let y = y1; y <= y2; y++) {
+                        for (let x = x1; x <= x2; x++) {
+                            points.push({ x, y });
+                        }
+                    }
+                }
+                return points;
+            };
+            // point to string
+            var pts = function (p) {
+                if (typeof (p) == 'string' || p instanceof String) return p;
+                return pts2(p.x, p.y);
+            };
+            var pts2 = function (x, y) {
+                return x + '_' + y;
+            };
+            var Seat = function (p) {
+                this.p = p;
+                this.x = p.x;
+                this.y = p.y;
+                this.pstr = pts(p);
+                this.state = null;
+                var ele = this.ele = document.createElement('div');
+                ele.className = 'seat';
+                ele.style.left = SEATW * p.x + 'em';
+                ele.style.top = SEATH * p.y + 'em';
+                this.updateTitle();
+                ele.addEventListener('click', () => {
+                    this.setState(this.state == DISABLED ? null : DISABLED);
+                    thiz.onCheckpoint();
+                });
+            };
+            Seat.prototype.updateTitle = function () {
+                var str = '';
+                // str += '(' + this.p.x + ', ' + this.p.y + ')';
+                if (this.state) str += ' ' + this.state;
+                str += this.state == DISABLED ? "Click to enable." : "Click to disable.";
+                this.ele.title = str;
+            };
+            Seat.prototype.setState = function (s) {
+                if (this.state == s) return;
+                if (this.state) this.ele.classList.remove(this.state);
+                if (this.state == DISABLED) disables--;
+                if (s) this.ele.classList.add(s);
+                if (s == DISABLED) disables++;
+                this.state = s;
+                this.updateTitle();
+            };
+            Seat.prototype.add = function () {
+                map.set(this.pstr, this);
+                container.appendChild(this.ele);
+            };
+            Seat.prototype.remove = function () {
+                map.delete(this.pstr);
+                this.ele.remove();
+            };
+            var CURRENT = 'current';
+            var FINAL = 'final';
+            var DISABLED = 'disabled';
+            var SEATW = 1.7, SEATH = 1.1;
+            var seats = []; // {Seat}
+            var map = new Map(); // maps point strings to seats
+            var disables = 0;
+            var cur = null;
+            var curIdx = -1;
+            var max = { x: 0, y: 0 };
+            this.autoDisable = true;
+            container.classList.add('seats');
+            this.setRects = function (rects) {
+                this.setSeats(pointsFromRects(rects));
+            };
+            this.setSeats = function (data) {
+                if (!data) data = [];
+                clearSeats();
+                data.forEach(s => {
+                    addSeat(s);
+                });
+                postAdd();
+                thiz.onCheckpoint();
+            };
+            var clearSeats = function (p) {
+                seats.forEach(s => {
+                    s.remove();
+                });
+                seats = [];
+                disables = 0;
+                cur = null;
+                curIdx = -1;
+                max.x = max.y = 0;
+            };
+            var addSeat = function (p) {
+                var pstr = pts(p);
+                if (map.has(pstr)) {
+                    console.warn('skipped duplicated point ' + pstr);
+                    return;
+                }
+                var seat = new Seat(p);
+                seats.push(seat);
+                seat.add();
+                if (p.x > max.x) max.x = p.x;
+                if (p.y > max.y) max.y = p.y;
+                return seat;
+            };
+            var postAdd = function () {
+                seats.sort(function (a, b) {
+                    if (a.y != b.y) return a.y - b.y;
+                    if (a.y % 2 == 1) return b.x - a.x;
+                    return a.x - b.x;
+                });
+                for (let idx = 0; idx < seats.length; idx++) {
+                    const s = seats[idx];
+                    s.idx = idx;
+                }
+                console.log(seats);
+                // console.log(views);
+                container.style.width = SEATW * (max.x + 1) + 'em';
+                container.style.height = SEATH * (max.y + 1) + 'em';
+            };
+            this.setActive = function (s, final) {
+                if (cur && cur.state != DISABLED) {
+                    cur.setState(null);
+                }
+                if (s) {
+                    s.setState(final ? FINAL : CURRENT);
+                }
+                cur = s;
+            };
+            this.resetActive = function (s) {
+                this.setActive(null);
+            };
+            this.resetState = function (s) {
+                seats.forEach(x => x.setState(null));
+                this.onCheckpoint();
+            };
+            this.setState = function (obj) {
+                clearSeats();
+                obj.seats.forEach(x => {
+                    var seat = addSeat(x.p);
+                    seat.setState(x.s);
+                });
+                curIdx = obj.curIdx;
+                if (curIdx >= 0) cur = seats[curIdx];
+                postAdd();
+            };
+            this.getState = function () {
+                var obj = {
+                    curIdx: curIdx,
+                    seats: []
+                };
+                seats.forEach(x => {
+                    obj.seats.push({
+                        p: x.p,
+                        s: x.state != CURRENT ? x.state : null
+                    });
+                });
+                return obj;
+            };
+            this.next = function (steps, final) {
+                steps = steps || 1;
+                var attempts = steps + seats.length + disables;
+                do {
+                    if (attempts-- < 0) {
+                        var msg = 'Failed to find next available seat.';
+                        alert(msg);
+                        throw new Error(msg);
+                    }
+                    if (++curIdx >= seats.length) curIdx = curIdx % seats.length;
+                } while (seats[curIdx].state == DISABLED || --steps > 0); // if it's disabled, steps won't decrease
+                this.setActive(seats[curIdx], final);
+            };
+            var genSteps = function () {
+                // return Math.floor(seats.length + Math.random() * seats.length);
+                var len = seats.length - disables;
+                return len + rng.getRandomInt() % len;
+            };
+            var running = null;
+            this.run = function () {
+                if (this.autoDisable && cur && cur.state == FINAL) {
+                    cur.setState(DISABLED);
+                }
+                if (seats.length - disables <= 0) {
+                    alert('No available seat');
+                    return;
+                }
+                var steps = genSteps();
+                console.log('running for ' + steps + ' steps');
+                var update = () => {
+                    if (running) window.clearTimeout(running);
+                    steps--;
+                    this.next();
+                    if (steps > 0) {
+                        var timeout = 30;
+                        if (steps < 16) {
+                            timeout *= Math.pow(1.2, 16 - steps)
+                        }
+                        if (steps < 4) {
+                            timeout *= Math.pow(1.2, 4 - steps)
+                        }
+                        running = setTimeout(update, timeout);
+                    } else {
+                        console.log("final", cur);
+                        this.setActive(cur, true);
+                        running = null;
+                        this.onCheckpoint();
+                    }
+                };
+                update();
+            };
+            this.randomnessTest = function (disable, num) {
+                if (cur && disable) cur.setState(DISABLED);
+                var steps = genSteps();
+                this.next(steps, true);
+                if (disable) {
+                    num = num || 1;
+                    cur.ele.textContent = num++;
+                } else {
+                    cur.ele.textContent -= -1;
+                }
+                setTimeout(() => this.randomnessTest(disable, num), 16);
+            };
+            this.onCheckpoint = function () { };
+        };
+        var app = new RDSeat(document.getElementById('seats'));
+        // app.setRects([
+        //     [0, 0, 1, 6],
+        //     [3, 0, 4, 7],
+        //     [6, 0, 7, 7],
+        //     [9, 0, 10, 7],
+        // ]);
+        function setup() {
+            var code = document.getElementById('setupcode').value;
+            eval(code);
+        }
+        function quicksetting() {
+            var h = document.getElementById('seatinput-h').value;
+            var w = document.getElementById('seatinput-w').value;
+            var g = document.getElementById('seatinput-g').value;
+            console.log('quick setting', { h, w, g });
+            if (g < 2) {
+                app.setRects([
+                    [0, 0, w - 1, h - 1]
+                ]);
+            } else {
+                var curx = 0;
+                var rects = [];
+                for (var i = 0; i < w; i++) {
+                    rects.push([curx, 0, curx, h - 1]);
+                    curx++;
+                    if ((i + 1) % g == 0) curx++;
+                }
+                app.setRects(rects);
+            }
+        }
+        var ctrl = document.getElementById('seatctrl');
+        var ctrltoggle = document.getElementById('ctrltoggle');
+        function toggleSettings(shown) {
+            if (shown === undefined) shown = ctrl.hidden;
+            ctrl.hidden = !shown;
+            if (shown) ctrl.scrollIntoView(true);
+            ctrltoggle.style.opacity = shown ? 1 : .3;
+            ctrltoggle.textContent = shown ? "Hide settings" : "Settings";
+            localStorage.setItem('settingsOpen', shown);
+        }
+        toggleSettings(localStorage.getItem('settingsOpen') != 'false');
+        function tryResume() {
+            var c = localStorage.getItem('curState');
+            if (!c) return false;
+            app.setState(JSON.parse(c));
+            return true;
+        }
+        function saveCurrentState() {
+            localStorage.setItem('curState', JSON.stringify(app.getState()));
+        }
+        app.onCheckpoint = saveCurrentState;
+        tryResume() || quicksetting();
+    </script>
+</body>
+
+</html>
