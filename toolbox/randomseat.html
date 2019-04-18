@@ -86,6 +86,14 @@
             background: rgb(50, 173, 255);
         }
 
+        .btn.disabled {
+            background: rgb(37, 78, 105);
+        }
+
+        .btn.disabled:hover {
+            background: rgb(66, 94, 112);
+        }
+
         .btn.btn-down,
         .btn:active {
             transition: all .05s;
@@ -109,8 +117,11 @@
         }
 
         .option-group {
+            display: inline-block;
+            vertical-align: top;
             background: #ddd;
-            padding: .5em;
+            padding: .2em .5em;
+            min-width: 14em;
         }
 
         .option-group-title {
@@ -118,6 +129,10 @@
             font-weight: bold;
             padding-bottom: .3em;
             text-align: center;
+        }
+
+        .option-group>* {
+            margin: .2em 0;
         }
 
         .ctrl-item {
@@ -130,6 +145,10 @@
         .ctrl-item input {
             width: 5em;
         }
+
+        #ctrltoggle:hover {
+            opacity: 1 !important;
+        }
     </style>
 </head>
 
@@ -141,18 +160,24 @@
         <div class="seats" id="seats"></div>
         <div class="btn" id="picker-btn" style="font-size: 200%; margin: .1em; width: 4em; " onclick="app.run()">Start!
         </div>
-        <div id="seatctrl" style="padding: 1em;">
+        <div id="seatctrl" style="padding: 1em; text-align: center;">
             <div class="option-group">
-                <div class="option-group-title">Quick Setting</div>
+                <div class="option-group-title">Layout Setting</div>
                 <label class="ctrl-item">Rows (height) <input type="number" min="1" id="seatinput-h" value="8"></label>
                 <label class="ctrl-item">Columns (width) <input type="number" min="1" id="seatinput-w"
                         value="8"></label>
                 <label class="ctrl-item">Group columns <input type="number" min="1" id="seatinput-g" value="2"></label>
                 <div class="btn" onclick="quicksetting()">Apply</div>
             </div>
+            <div class="option-group">
+                <div class="option-group-title">Actions</div>
+                <div class="btn" onclick="app.resetState()">Reset all seats</div>
+                <div class="btn" onclick="removeDisabled()">Remove disabled seats</div>
+                <div class="btn" id="autoDisable" onclick="toggleAutoDisable()">Toggle auto disable</div>
+            </div>
         </div>
-        <div class="btn" id='ctrltoggle' style="position: fixed; left: 0; bottom: 0;" onclick="toggleSettings()">
-            Settings</div>
+        <div class="btn" id='ctrltoggle' style="position: fixed; left: 0; bottom: 0;" onclick="toggleSettings()">Toggle
+            Options</div>
     </div>
     <script>
         'use strict';
@@ -204,7 +229,7 @@
                 this.updateTitle();
                 ele.addEventListener('click', () => {
                     this.setState(this.state == DISABLED ? null : DISABLED);
-                    thiz.onCheckpoint();
+                    thiz.onStateChanged();
                 });
             };
             Seat.prototype.updateTitle = function () {
@@ -228,6 +253,8 @@
                 container.appendChild(this.ele);
             };
             Seat.prototype.remove = function () {
+                this.idx = -1;
+                if (this.state == DISABLED) disables--;
                 map.delete(this.pstr);
                 this.ele.remove();
             };
@@ -239,21 +266,20 @@
             var map = new Map(); // maps point strings to seats
             var disables = 0;
             var cur = null;
-            var curIdx = -1;
-            var max = { x: 0, y: 0 };
             this.autoDisable = true;
             container.classList.add('seats');
             this.setRects = function (rects) {
                 this.setSeats(pointsFromRects(rects));
             };
             this.setSeats = function (data) {
+                this.stopRun();
                 if (!data) data = [];
                 clearSeats();
                 data.forEach(s => {
-                    addSeat(s);
+                    this.addSeat(s);
                 });
-                postAdd();
-                thiz.onCheckpoint();
+                this.updateSeats();
+                thiz.onStateChanged();
             };
             var clearSeats = function (p) {
                 seats.forEach(s => {
@@ -262,36 +288,42 @@
                 seats = [];
                 disables = 0;
                 cur = null;
-                curIdx = -1;
-                max.x = max.y = 0;
             };
-            var addSeat = function (p) {
+            this.getSeats = function () {
+                return seats;
+            };
+            this.addSeat = function (p) {
                 var pstr = pts(p);
                 if (map.has(pstr)) {
                     console.warn('skipped duplicated point ' + pstr);
                     return;
                 }
                 var seat = new Seat(p);
-                seats.push(seat);
                 seat.add();
-                if (p.x > max.x) max.x = p.x;
-                if (p.y > max.y) max.y = p.y;
                 return seat;
             };
-            var postAdd = function () {
+            this.updateSeats = function () {
+                seats = [];
+                for (var item of map.values()) {
+                    seats.push(item);
+                }
                 seats.sort(function (a, b) {
                     if (a.y != b.y) return a.y - b.y;
                     if (a.y % 2 == 1) return b.x - a.x;
                     return a.x - b.x;
                 });
+                var maxX = 0, maxY = 0;
                 for (let idx = 0; idx < seats.length; idx++) {
                     const s = seats[idx];
                     s.idx = idx;
+                    const p = s.p;
+                    if (p.x > maxX) maxX = p.x;
+                    if (p.y > maxY) maxY = p.y;
                 }
                 console.log(seats);
                 // console.log(views);
-                container.style.width = SEATW * (max.x + 1) + 'em';
-                container.style.height = SEATH * (max.y + 1) + 'em';
+                container.style.width = SEATW * (maxX + 1) + 'em';
+                container.style.height = SEATH * (maxY + 1) + 'em';
             };
             this.setActive = function (s, final) {
                 if (cur && cur.state != DISABLED) {
@@ -304,26 +336,31 @@
             };
             this.resetActive = function (s) {
                 this.setActive(null);
+                this.onStateChanged();
             };
             this.resetState = function (s) {
+                this.stopRun();
+                cur = null;
                 seats.forEach(x => x.setState(null));
-                this.onCheckpoint();
+                this.onStateChanged();
             };
             this.setState = function (obj) {
+                this.stopRun();
                 clearSeats();
                 obj.seats.forEach(x => {
-                    var seat = addSeat(x.p);
+                    var seat = this.addSeat(x.p);
                     seat.setState(x.s);
                 });
-                curIdx = obj.curIdx;
+                this.updateSeats();
+                var curIdx = obj.curIdx;
                 if (curIdx >= 0) cur = seats[curIdx];
-                postAdd();
             };
             this.getState = function () {
                 var obj = {
-                    curIdx: curIdx,
+                    curIdx: -1,
                     seats: []
                 };
+                if (cur && cur.state == FINAL) obj.curIdx = cur.idx;
                 seats.forEach(x => {
                     obj.seats.push({
                         p: x.p,
@@ -335,6 +372,7 @@
             this.next = function (steps, final) {
                 steps = steps || 1;
                 var attempts = steps + seats.length + disables;
+                var curIdx = cur ? cur.idx : -1;
                 do {
                     if (attempts-- < 0) {
                         var msg = 'Failed to find next available seat.';
@@ -351,6 +389,12 @@
                 return len + rng.getRandomInt() % len;
             };
             var running = null;
+            this.stopRun = function () {
+                if (running) {
+                    clearTimeout(running);
+                    running = null;
+                }
+            };
             this.run = function () {
                 if (this.autoDisable && cur && cur.state == FINAL) {
                     cur.setState(DISABLED);
@@ -362,7 +406,6 @@
                 var steps = genSteps();
                 console.log('running for ' + steps + ' steps');
                 var update = () => {
-                    if (running) window.clearTimeout(running);
                     steps--;
                     this.next();
                     if (steps > 0) {
@@ -378,9 +421,10 @@
                         console.log("final", cur);
                         this.setActive(cur, true);
                         running = null;
-                        this.onCheckpoint();
+                        this.onStateChanged();
                     }
                 };
+                this.stopRun();
                 update();
             };
             this.randomnessTest = function (disable, num) {
@@ -395,7 +439,7 @@
                 }
                 setTimeout(() => this.randomnessTest(disable, num), 16);
             };
-            this.onCheckpoint = function () { };
+            this.onStateChanged = function () { };
         };
         var app = new RDSeat(document.getElementById('seats'));
         // app.setRects([
@@ -430,16 +474,18 @@
         }
         var ctrl = document.getElementById('seatctrl');
         var ctrltoggle = document.getElementById('ctrltoggle');
+        var autoDisable = document.getElementById('autoDisable');
         function toggleSettings(shown) {
             if (shown === undefined) shown = ctrl.hidden;
             ctrl.hidden = !shown;
             if (shown) ctrl.scrollIntoView(true);
             ctrltoggle.style.opacity = shown ? 1 : .3;
-            ctrltoggle.textContent = shown ? "Hide settings" : "Settings";
+            ctrltoggle.textContent = shown ? "Hide options" : "Options";
             localStorage.setItem('settingsOpen', shown);
         }
-        toggleSettings(localStorage.getItem('settingsOpen') != 'false');
         function tryResume() {
+            toggleSettings(localStorage.getItem('settingsOpen') != 'false');
+            toggleAutoDisable(localStorage.getItem('autoDisable') != 'false');
             var c = localStorage.getItem('curState');
             if (!c) return false;
             app.setState(JSON.parse(c));
@@ -448,7 +494,26 @@
         function saveCurrentState() {
             localStorage.setItem('curState', JSON.stringify(app.getState()));
         }
-        app.onCheckpoint = saveCurrentState;
+        app.onStateChanged = saveCurrentState;
+
+        function removeDisabled() {
+            var seats = app.getSeats();
+            for (var s of seats) {
+                if (s.state == 'disabled') {
+                    s.remove();
+                }
+            }
+            app.updateSeats();
+            saveCurrentState();
+        }
+
+        function toggleAutoDisable(enable) {
+            if (enable === undefined) enable = !app.autoDisable;
+            app.autoDisable = enable;
+            autoDisable.classList.toggle('disabled', !enable);
+            localStorage.setItem('autoDisable', enable);
+        }
+
         tryResume() || quicksetting();
     </script>
 </body>
