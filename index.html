@@ -18,10 +18,10 @@
 
         h1,
         h2 {
-            background: #94ddff;
-            color: black;
+            background: #1976d2;
+            color: white;
             padding: .5em 1em;
-            animation: in .8s;
+            /* animation: in .8s; */
         }
 
         p,
@@ -31,10 +31,17 @@
             animation: in .8s;
         }
 
+        .block {
+            background: #fafafa;
+            padding-bottom: .5em;
+            animation: in .8s;
+            border-radius: .2em;
+            box-shadow: .2em .4em 1em rgba(0, 0, 0, .2);
+        }
+
         @keyframes in {
             from {
-                /* background: rgba(127, 127, 127, 100); */
-                transform: translate(-3em, -1em) rotate(-10deg);
+                transform: translate(0, -1em);
                 opacity: 0;
             }
 
@@ -42,34 +49,39 @@
         }
 
         a {
-            color: #0091d4;
+            color: #1976d2;
         }
 
         a:hover {
-            color: #00aeff;
+            color: #63a4ff;
         }
     </style>
 </head>
 
 <body>
-    <h1 style="text-align: center; margin: 0;">Yet A Public Toolbox</h1>
-    <p>Hi, welcome to my 'toolbox'.</p>
-    <p>I know. This frontpage is so ugly.
-        <br>(UPDATE: now it's a little better, just a little.)
-        <br>(UPDATE2: color scheme is updated.)</p>
-    <p>But it's really a <a href="https://motherfuckingwebsite.com/">Moth*****king Website</a>.
-        <br>It loads really fast, and functions well on both your PC and mobile phone. It even (basically) works on old browsers (e.g. IE6).
-    </p>
-    <p>I am not going to write any fancy code to make it "looks like a modern website".</p>
-    <p>Just kidding, it's just under construction. I did write such code.</p>
-    <h2>Tools</h2>
-    <p>Here are some tools:</p>
-    <ul>
-        <li><a class="open-popup" href="toolbox/countdown.html">Countdown Timer</a></li>
-        <li><a class="open-popup" href="toolbox/rng.html">Random Number Generator</a></li>
-        <li><a class="open-popup" href="toolbox/randomseat.html">Random Seat Selector</a></li>
-    </ul>
-    <p>More tools may be added in the future!</p>
+    <div class="block">
+        <h1 style="text-align: center; margin: 0;">Yet A Public Toolbox</h1>
+        <p>Hi, welcome to my 'toolbox'.</p>
+        <p>I know. This frontpage is so ugly.
+            <br>(UPDATE: now it's a little better, just a little.)
+            <br>(UPDATE2: color scheme is updated.)</p>
+        <p>But it's really a <a href="https://motherfuckingwebsite.com/">Moth*****king Website</a>.
+            <br>It loads really fast, and functions well on both your PC and mobile phone. <del>It even works on
+            old browsers (e.g. IE6).</del>
+        </p>
+        <p>I am not going to write any fancy code to make it "looks like a modern website".</p>
+        <p>Just kidding, it's just under construction. I did write such code.</p>
+    </div>
+    <div class="block">
+        <h2>Tools</h2>
+        <p>Here are some tools:</p>
+        <ul>
+            <li><a class="open-popup" href="toolbox/countdown.html">Countdown Timer</a></li>
+            <li><a class="open-popup" href="toolbox/rng.html">Random Number Generator</a></li>
+            <li><a class="open-popup" href="toolbox/randomseat.html">Random Seat Selector</a></li>
+        </ul>
+        <p>More tools may be added in the future!</p>
+    </div>
     <small>
         <p style="text-align: right;"><a href="https://github.com/lideming/lideming.github.io">Hosted on Github</a></p>
     </small>
@@ -92,7 +104,7 @@
         document.querySelectorAll('.open-popup').forEach(function (x) {
             var a = document.createElement('a');
             a.href = x.href;
-            a.onclick = function () {openPopup(this, event)};
+            a.onclick = function () { openPopup(this, event) };
             a.textContent = 'open as popup';
             a.title = 'May not work, depends on your browser.';
             x.appendTextAfter(' (').appendAfter(a).appendTextAfter(')');
