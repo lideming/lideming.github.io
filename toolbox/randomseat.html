@@ -49,6 +49,16 @@
             transition: background .1s;
         }
 
+        .seat.tobeselected {
+            background: rgb(0, 134, 22);
+            transition: background .1s;
+        }
+
+        .seat.selected {
+            background: rgb(255, 91, 91);
+            transition: background .1s;
+        }
+
         .seat:active {
             background: rgb(0, 225, 255);
             transition: background .1s;
@@ -77,6 +87,10 @@
             overflow: hidden;
         }
 
+        .btn.hidden {
+            display: none;
+        }
+
         .btn.btn-down {
             cursor: default;
         }
@@ -92,6 +106,14 @@
 
         .btn.disabled:hover {
             background: rgb(66, 94, 112);
+        }
+
+        .btn.dangerous {
+            background: rgb(255, 91, 91);
+        }
+
+        .btn.btn.dangerous:hover {
+            background: rgb(255, 131, 131);
         }
 
         .btn.btn-down,
@@ -116,11 +138,17 @@
             opacity: .3;
         }
 
+        #ctrltoggle:hover {
+            opacity: 1 !important;
+        }
+
         #seatctrl {
             display: flex;
-            padding: 1em;
+            padding: .3em;
             flex-wrap: wrap;
             justify-content: center;
+            position: sticky;
+            bottom: 0;
             /* align-items: baseline; */
         }
 
@@ -130,7 +158,7 @@
             margin: .6em;
             background: #eee;
             padding: .5em .5em;
-            min-width: 14em;
+            min-width: 16em;
             border-radius: .2em;
             box-shadow: 2px 2px 10px rgba(0, 0, 0, .4);
         }
@@ -150,22 +178,32 @@
         }
 
         .option-group-content>* {
-            margin: .1em 0;
+            margin: .15em 0;
+            height: 1.6em;
+            line-height: 1.6em;
         }
 
-        .ctrl-item {
+        .option-row {
             display: flex;
             justify-content: space-between;
             width: 100%;
-            margin: .2em 0;
+            /* margin: .2em 0; */
         }
 
-        .ctrl-item input {
+        .labeled-input input {
             width: 5em;
         }
 
-        #ctrltoggle:hover {
-            opacity: 1 !important;
+        .labeled-input {
+            user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            -moz-user-select: none;
+        }
+
+        .rotate,
+        .rotate-r {
+            transition: transform .5s;
         }
     </style>
 </head>
@@ -173,32 +211,42 @@
 <body>
     <div
         style="display: flex; flex-direction: column; align-items: center; justify-content: space-around; min-height: 100vh;">
-        <div>
-            <div style="font-size: 3vw; text-align: center; padding: .6em; width: 7em; margin: .4em auto; border: .1em solid black; background: #ccc;">
-                Platform</div>
-            <div class="seats" id="seats"></div>
+        <div style="overflow: hidden; padding-bottom: .2em;">
+            <div class="rotate">
+                <div class="rotate-r"
+                    style="font-size: 3vw; text-align: center; padding: .6em; width: 7em; margin: .2em auto; border: .1em solid black; background: #ccc;">
+                    Platform</div>
+                <div class="seats" id="seats"></div>
+            </div>
         </div>
-        <div class="btn" id="picker-btn" style="font-size: 200%; margin: .1em; width: 4em; " onclick="app.run()">Start!
+        <div class="btn" id="picker-btn" style="font-size: 200%; margin: .1em; width: 4em; position: sticky; bottom: 0;"
+            onclick="app.run()">Start!
         </div>
         <div id="seatctrl">
             <div class="option-group">
                 <div class="option-group-title">Layout Setting</div>
                 <div class="option-group-content">
-                    <label class="ctrl-item">Rows (height) <input type="number" min="1" id="seatinput-h"
+                    <label class="option-row labeled-input">Rows (height) <input type="number" min="1" id="seatinput-h"
                             value="8"></label>
-                    <label class="ctrl-item">Columns (width) <input type="number" min="1" id="seatinput-w"
-                            value="8"></label>
-                    <label class="ctrl-item">Group columns <input type="number" min="1" id="seatinput-g"
+                    <label class="option-row labeled-input">Columns (width) <input type="number" min="1"
+                            id="seatinput-w" value="8"></label>
+                    <label class="option-row labeled-input">Group columns <input type="number" min="1" id="seatinput-g"
                             value="2"></label>
-                    <div class="btn" onclick="quicksetting()">Apply</div>
+                    <div class="btn dangerous" onclick="quicksetting()">Apply</div>
                 </div>
             </div>
             <div class="option-group">
                 <div class="option-group-title">Actions</div>
                 <div class="option-group-content">
-                    <div class="btn" onclick="app.resetState()">Reset all seats</div>
-                    <div class="btn" onclick="removeDisabled()">Remove disabled seats</div>
-                    <div class="btn" id="autoDisable" onclick="toggleAutoDisable()">Toggle auto disable</div>
+                    <div class="btn" onclick="doRotate()">Rotate view</div>
+                    <div class="btn" id="autoDisable" onclick="toggleAutoDisable()">Toggle auto-disable</div>
+                    <div class="option-row">
+                        <div class="btn" id="removeToggle" style="flex: 1;" onclick="removeMode()">Remove seats</div>
+                        <div class="btn hidden dangerous" id="cancelRemove" style="margin-left: .2em;"
+                            onclick="removeMode(true)">Cancel</div>
+                    </div>
+                    <!-- <div class="btn" onclick="removeDisabled()">Remove disabled seats</div> -->
+                    <div class="btn dangerous" onclick="app.resetState()">Reset all seats</div>
                 </div>
             </div>
         </div>
@@ -248,57 +296,98 @@
                 this.y = p.y;
                 this.pstr = pts(p);
                 this.state = null;
+                this.added = false;
                 var ele = this.ele = document.createElement('div');
                 ele.className = 'seat';
                 ele.style.left = SEATW * p.x + 'em';
                 ele.style.top = SEATH * p.y + 'em';
                 this.updateTitle();
                 ele.addEventListener('click', () => {
-                    this.setState(this.state == DISABLED ? null : DISABLED);
+                    if (this.state == TOBESELECTED) this.setState(SELECTED);
+                    else if (this.state == SELECTED) this.setState(TOBESELECTED);
+                    else this.setState(this.state == DISABLED ? null : DISABLED);
                     thiz.onStateChanged();
                 });
             };
             Seat.prototype.updateTitle = function () {
                 var str = '';
                 // str += '(' + this.p.x + ', ' + this.p.y + ')';
-                if (this.state) str += ' ' + this.state;
-                str += this.state == DISABLED ? "Click to enable." : "Click to disable.";
+                // if (this.state) str += ' ' + this.state;
+                if (this.state == TOBESELECTED) str += 'Click to select.';
+                else if (this.state == SELECTED) str += 'Click to unselect.';
+                else str += this.state == DISABLED ? "Click to enable." : "Click to disable.";
                 this.ele.title = str;
             };
             Seat.prototype.setState = function (s) {
                 if (this.state == s) return;
                 if (this.state) this.ele.classList.remove(this.state);
-                if (this.state == DISABLED) disables--;
+                if (this.added) addStateCount(this.state, -1)
                 if (s) this.ele.classList.add(s);
-                if (s == DISABLED) disables++;
+                if (this.added) addStateCount(s, +1)
                 this.state = s;
                 this.updateTitle();
             };
             Seat.prototype.add = function () {
+                if (this.added) return;
+                this.added = true;
+                addStateCount(this.state, +1)
                 map.set(this.pstr, this);
                 container.appendChild(this.ele);
             };
             Seat.prototype.remove = function () {
+                if (!this.added) return;
+                this.added = false;
                 this.idx = -1;
-                if (this.state == DISABLED) disables--;
+                addStateCount(this.state, -1)
                 map.delete(this.pstr);
                 this.ele.remove();
             };
             var CURRENT = 'current';
             var FINAL = 'final';
             var DISABLED = 'disabled';
+            var TOBESELECTED = 'tobeselected'
+            var SELECTED = 'selected'
             var SEATW = 1.7, SEATH = 1.1;
             var seats = []; // {Seat}
             var map = new Map(); // maps point strings to seats
-            var disables = 0;
+            var stateCounters = this.stateCounters = {};
+            var addStateCount = function (state, add) {
+                if (state === null) state = 'null';
+                stateCounters[state] = (stateCounters[state] || 0) + (add || 1);
+            };
+            var getStateCount = function (state) { return stateCounters[state] || 0; }
+            var getDisables = function () { return getStateCount(DISABLED); }
+            this.getSelectedCount = function () { return getStateCount(SELECTED); }
             var cur = null;
+            var mode = null;
+            var Modes = {
+                NORMAL: 'normal',
+                RUNNING: 'running',
+                SELECT: 'select'
+            };
+            var onLeaveMode = null;
+            var enterMode = function (newMode, leaveAction) {
+                if (mode != Modes.NORMAL) leaveMode();
+                console.log('enter mode ' + newMode);
+                onLeaveMode = leaveAction;
+                mode = newMode;
+            };
+            var leaveMode = function (dontRaiseEvent) {
+                if (mode == Modes.NORMAL) return;
+                console.log('leave mode ' + mode);
+                if (!dontRaiseEvent) {
+                    onLeaveMode && onLeaveMode();
+                }
+                onLeaveMode = null;
+                mode = Modes.NORMAL;
+            };
             this.autoDisable = true;
             container.classList.add('seats');
             this.setRects = function (rects) {
                 this.setSeats(pointsFromRects(rects));
             };
             this.setSeats = function (data) {
-                this.stopRun();
+                leaveMode();
                 if (!data) data = [];
                 clearSeats();
                 data.forEach(s => {
@@ -312,7 +401,6 @@
                     s.remove();
                 });
                 seats = [];
-                disables = 0;
                 cur = null;
             };
             this.getSeats = function () {
@@ -361,17 +449,18 @@
                 cur = s;
             };
             this.resetActive = function (s) {
+                leaveMode();
                 this.setActive(null);
                 this.onStateChanged();
             };
             this.resetState = function (s) {
-                this.stopRun();
+                leaveMode();
                 cur = null;
                 seats.forEach(x => x.setState(null));
                 this.onStateChanged();
             };
             this.setState = function (obj) {
-                this.stopRun();
+                leaveMode();
                 clearSeats();
                 obj.seats.forEach(x => {
                     var seat = this.addSeat(x.p);
@@ -395,9 +484,32 @@
                 });
                 return obj;
             };
+            this.startSelect = function (cancelled) {
+                if (mode == Modes.SELECT) return;
+                enterMode(Modes.SELECT, () => {
+                    var r = this.endSelect();
+                    cancelled && cancelled(r);
+                });
+                seats.forEach(x => {
+                    x.realState = x.state;
+                    x.setState(TOBESELECTED);
+                });
+            };
+            this.endSelect = function () {
+                if (mode != Modes.SELECT) throw new Error('Not in select mode!');
+                this.selectMode = false;
+                var selected = [];
+                seats.forEach(x => {
+                    if (x.state == SELECTED) selected.push(x);
+                    x.setState(x.realState);
+                    delete x.realState;
+                });
+                leaveMode(true);
+                return selected;
+            };
             this.next = function (steps, final) {
                 steps = steps || 1;
-                var attempts = steps + seats.length + disables;
+                var attempts = steps + seats.length + getDisables();
                 var curIdx = cur ? cur.idx : -1;
                 do {
                     if (attempts-- < 0) {
@@ -411,21 +523,23 @@
             };
             var genSteps = function () {
                 // return Math.floor(seats.length + Math.random() * seats.length);
-                var len = seats.length - disables;
+                var len = seats.length - getDisables();
                 return len + rng.getRandomInt() % len;
             };
             var running = null;
-            this.stopRun = function () {
-                if (running) {
+            this.stopRun = function (keepCur) {
+                if (running !== null) {
                     clearTimeout(running);
                     running = null;
+                    if (!keepCur) this.setActive(null);
                 }
             };
             this.run = function () {
+                if (mode != Modes.RUNNING) enterMode(Modes.RUNNING, () => this.stopRun());
                 if (this.autoDisable && cur && cur.state == FINAL) {
                     cur.setState(DISABLED);
                 }
-                if (seats.length - disables <= 0) {
+                if (seats.length - getDisables() <= 0) {
                     alert('No available seat');
                     return;
                 }
@@ -437,20 +551,21 @@
                     if (steps > 0) {
                         var timeout = 30;
                         if (steps < 16) {
-                            timeout *= Math.pow(1.2, 16 - steps)
+                            timeout *= Math.pow(1.2, 16 - steps);
                         }
                         if (steps < 4) {
-                            timeout *= Math.pow(1.2, 4 - steps)
+                            timeout *= Math.pow(1.2, 4 - steps);
                         }
                         running = setTimeout(update, timeout);
                     } else {
                         console.log("final", cur);
                         this.setActive(cur, true);
                         running = null;
+                        leaveMode(true);
                         this.onStateChanged();
                     }
                 };
-                this.stopRun();
+                this.stopRun(true);
                 update();
             };
             this.randomnessTest = function (disable, num) {
@@ -503,8 +618,8 @@
         var autoDisable = document.getElementById('autoDisable');
         function toggleSettings(shown) {
             if (shown === undefined) shown = ctrl.style.display == 'none';
-            ctrl.style.display = shown ? 'flex' : 'none';
-            if (shown) ctrl.scrollIntoView(true);
+            ctrl.style.display = shown ? null : 'none';
+            // if (shown) ctrl.scrollIntoView(true);
             ctrltoggle.style.opacity = shown ? 1 : .3;
             ctrltoggle.textContent = shown ? "Hide options" : "Options";
             localStorage.setItem('settingsOpen', shown);
@@ -518,9 +633,13 @@
             return true;
         }
         function saveCurrentState() {
+            console.log('saving current state');
             localStorage.setItem('curState', JSON.stringify(app.getState()));
         }
-        app.onStateChanged = saveCurrentState;
+        app.onStateChanged = function () {
+            if (!isRemoveMode) saveCurrentState();
+            else updateRemoveButton();
+        };
 
         function removeDisabled() {
             var seats = app.getSeats();
@@ -532,6 +651,37 @@
             app.updateSeats();
             saveCurrentState();
         }
+        var isRemoveMode = false;
+        var removeToggle = document.getElementById('removeToggle');
+        function removeMode(cancelled) {
+            if (isRemoveMode) {
+                isRemoveMode = false;
+                var seats = app.endSelect();
+                if (!cancelled) {
+                    console.log('to be removed:', seats);
+                    seats.forEach(x => x.remove());
+                    app.updateSeats();
+                    saveCurrentState();
+                }
+            } else {
+                isRemoveMode = true;
+                app.startSelect(() => {
+                    isRemoveMode = false;
+                    updateRemoveButton();
+                });
+            }
+            updateRemoveButton();
+        }
+        function updateRemoveButton() {
+            document.getElementById('cancelRemove').classList.toggle('hidden', !isRemoveMode);
+            removeToggle.classList.toggle('dangerous', isRemoveMode);
+            if (!isRemoveMode) removeToggle.textContent = 'Remove seats';
+            else {
+                var count = app.getSelectedCount();
+                if (count == 0) removeToggle.textContent = 'Click seats to remove';
+                else removeToggle.textContent = 'Remove ' + count + ' seat' + (count > 1 ? 's' : '');
+            }
+        }
 
         function toggleAutoDisable(enable) {
             if (enable === undefined) enable = !app.autoDisable;
@@ -539,6 +689,20 @@
             autoDisable.classList.toggle('disabled', !enable);
             localStorage.setItem('autoDisable', enable);
         }
+
+        var isRotated = false;
+        function doRotate() {
+            localStorage.setItem('rotate', isRotated = !isRotated);
+            var r = document.querySelectorAll('.rotate');
+            for (const ele of r) {
+                ele.style.transform = isRotated ? 'rotate(180deg)' : null;
+            }
+            var r = document.querySelectorAll('.rotate-r');
+            for (const ele of r) {
+                ele.style.transform = isRotated ? 'rotate(-180deg)' : null;
+            }
+        }
+        if (localStorage.getItem('rotate') == 'true') doRotate();
 
         tryResume() || quicksetting();
     </script>
