@@ -15,6 +15,10 @@
 
         * {
             box-sizing: border-box;
+            -ms-user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .seats {
@@ -24,7 +28,7 @@
 
         .seat {
             position: absolute;
-            background: rgb(0, 120, 156);
+            background: #0097a7;
             /* border: 1px solid black; */
             width: 1.6em;
             height: 1em;
@@ -35,33 +39,38 @@
         }
 
         .seat.current {
-            background: rgb(255, 239, 147);
+            background: #ffd54f;
             transition: none;
         }
 
         .seat.final {
-            background: rgb(255, 165, 112);
+            background: #e64a19;
             transition: none;
         }
 
         .seat.disabled {
-            background: rgb(97, 97, 97);
+            background: #37474f;
             transition: background .1s;
         }
 
         .seat.tobeselected {
-            background: rgb(0, 134, 22);
+            background: hsl(199, 91%, 54%);
             transition: background .1s;
         }
 
         .seat.selected {
-            background: rgb(255, 91, 91);
+            background: hsl(0, 65%, 70%);
             transition: background .1s;
         }
 
+        .seat:hover {
+            filter: brightness(1.2);
+        }
+
         .seat:active {
-            background: rgb(0, 225, 255);
-            transition: background .1s;
+            /* background: #cccccc;
+            transition: background .1s; */
+            filter: brightness(1.5);
         }
 
         .btn {
@@ -70,11 +79,11 @@
             justify-content: center;
             align-items: center;
             transition: all .3s;
-            padding: .3em;
+            padding: .3em .5em;
             min-width: 3em;
             line-height: 1em;
             /* margin: .5em; */
-            background: #2196F3;
+            background: hsl(207, 90%, 54%);
             color: white;
             /* border-radius: .3em; */
             box-shadow: 0 0 .3em gray;
@@ -87,17 +96,13 @@
             overflow: hidden;
         }
 
-        .btn.hidden {
-            display: none;
-        }
-
         .btn.btn-down {
             cursor: default;
         }
 
         .btn:hover {
             transition: all .05s;
-            background: rgb(50, 173, 255);
+            background: hsl(207, 90%, 61%);
         }
 
         .btn.disabled {
@@ -109,17 +114,17 @@
         }
 
         .btn.dangerous {
-            background: rgb(255, 91, 91);
+            background: hsl(0, 100%, 61%)
         }
 
         .btn.btn.dangerous:hover {
-            background: rgb(255, 131, 131);
+            background: hsl(0, 100%, 70%)
         }
 
         .btn.btn-down,
         .btn:active {
             transition: all .05s;
-            background: rgb(0, 225, 255);
+            background: hsl(207, 90%, 70%);
             /* background: darkgray; */
             box-shadow: 0 0 .1em gray;
         }
@@ -158,7 +163,7 @@
             margin: .6em;
             background: #eee;
             padding: .5em .5em;
-            min-width: 16em;
+            max-width: 16em;
             border-radius: .2em;
             box-shadow: 2px 2px 10px rgba(0, 0, 0, .4);
         }
@@ -179,18 +184,34 @@
 
         .option-group-content>* {
             margin: .15em 0;
-            height: 1.6em;
-            line-height: 1.6em;
+            /* height: 1.6em; */
+            /* line-height: 1.6em; */
+        }
+
+        .option-group-content-2 {
+            width: 20em;
+            display: flex;
+            position: relative;
+            flex: 1;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .option-group-content-2>* {
+            min-width: calc(50% - .3em);
+            flex: 1;
+            margin: .15em;
         }
 
         .option-row {
             display: flex;
             justify-content: space-between;
-            width: 100%;
+            /* width: 100%; */
             /* margin: .2em 0; */
         }
 
         .labeled-input input {
+            margin-left: .15em;
             width: 5em;
         }
 
@@ -205,6 +226,10 @@
         .rotate-r {
             transition: transform .5s;
         }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 
@@ -214,7 +239,7 @@
         <div style="overflow: hidden; padding-bottom: .2em;">
             <div class="rotate">
                 <div class="rotate-r"
-                    style="font-size: 3vw; text-align: center; padding: .6em; width: 7em; margin: .2em auto; border: .1em solid black; background: #ccc;">
+                    style="font-size: 3vw; text-align: center; padding: .6em; width: 7em; margin: .2em auto; border: .1em solid black; background: #e0e0e0;">
                     Platform</div>
                 <div class="seats" id="seats"></div>
             </div>
@@ -240,13 +265,18 @@
                 <div class="option-group-content">
                     <div class="btn" onclick="doRotate()">Rotate view</div>
                     <div class="btn" id="autoDisable" onclick="toggleAutoDisable()">Toggle auto-disable</div>
-                    <div class="option-row">
-                        <div class="btn" id="removeToggle" style="flex: 1;" onclick="removeMode()">Remove seats</div>
-                        <div class="btn hidden dangerous" id="cancelRemove" style="margin-left: .2em;"
-                            onclick="removeMode(true)">Cancel</div>
-                    </div>
-                    <!-- <div class="btn" onclick="removeDisabled()">Remove disabled seats</div> -->
+                    <div class="btn" onclick="removeMode()">Remove seats...</div>
                     <div class="btn dangerous" onclick="app.resetState()">Reset all seats</div>
+                </div>
+            </div>
+            <div class="option-group hidden" id="removing">
+                <div class="option-group-title">Removing Seat</div>
+                <div class="option-group-content" style="max-width: 20em;">
+                    <p>Now click on seats that you want to remove.</p>
+                    <div class="option-row">
+                        <div class="btn" id="proceedRemove" onclick="removeMode()">Proceed to remove</div>
+                        <div class="btn" id="cancelRemove" onclick="removeMode(true)"> Cancel</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -583,12 +613,6 @@
             this.onStateChanged = function () { };
         };
         var app = new RDSeat(document.getElementById('seats'));
-        // app.setRects([
-        //     [0, 0, 1, 6],
-        //     [3, 0, 4, 7],
-        //     [6, 0, 7, 7],
-        //     [9, 0, 10, 7],
-        // ]);
         function setup() {
             var code = document.getElementById('setupcode').value;
             eval(code);
@@ -638,21 +662,12 @@
         }
         app.onStateChanged = function () {
             if (!isRemoveMode) saveCurrentState();
-            else updateRemoveButton();
+            else updateRemoveUI();
         };
-
-        function removeDisabled() {
-            var seats = app.getSeats();
-            for (var s of seats) {
-                if (s.state == 'disabled') {
-                    s.remove();
-                }
-            }
-            app.updateSeats();
-            saveCurrentState();
-        }
+        
         var isRemoveMode = false;
-        var removeToggle = document.getElementById('removeToggle');
+        var proceedRemove = document.getElementById('proceedRemove');
+        var groupRemoving = document.getElementById('removing');
         function removeMode(cancelled) {
             if (isRemoveMode) {
                 isRemoveMode = false;
@@ -667,19 +682,23 @@
                 isRemoveMode = true;
                 app.startSelect(() => {
                     isRemoveMode = false;
-                    updateRemoveButton();
+                    updateRemoveUI();
                 });
             }
-            updateRemoveButton();
+            updateRemoveUI();
         }
-        function updateRemoveButton() {
+        function updateRemoveUI() {
+            for (const ele of document.querySelectorAll('.option-group')) {
+                ele.classList.toggle('hidden', isRemoveMode ^ ele == groupRemoving);
+            }
             document.getElementById('cancelRemove').classList.toggle('hidden', !isRemoveMode);
-            removeToggle.classList.toggle('dangerous', isRemoveMode);
-            if (!isRemoveMode) removeToggle.textContent = 'Remove seats';
+            proceedRemove.classList.toggle('dangerous', isRemoveMode);
+            if (!isRemoveMode) proceedRemove.textContent = 'Remove seats';
             else {
                 var count = app.getSelectedCount();
-                if (count == 0) removeToggle.textContent = 'Click seats to remove';
-                else removeToggle.textContent = 'Remove ' + count + ' seat' + (count > 1 ? 's' : '');
+                proceedRemove.style.pointerEvents = count ? null : 'none';
+                proceedRemove.style.opacity = count ? 1 : 0;
+                proceedRemove.textContent = 'Remove ' + count + ' seat' + (count > 1 ? 's' : '');
             }
         }
 
