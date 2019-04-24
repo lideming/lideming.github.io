@@ -276,9 +276,17 @@
         </div>
         <div style="position: sticky; bottom: 0;">
             <div class="btn i18ne" style="font-size: 200%; min-width: 4em; position: sticky; bottom: 0;" onclick="doRun()">Start!</div>
-            <div id="skipAnimation" class="i18ne hidden" style="font-size: 80%; padding: .2em .3em; text-align: center;" onclick="app.run(true)">(skip animation)</div>
+            <div id="skipAnimation" class="i18ne hidden" style="font-size: 80%; padding: .2em .3em; text-align: center;">(skip animation)</div>
         </div>
         <div id="seatctrl">
+            <div class="option-group">
+                <div class="option-group-title i18ne">Actions</div>
+                <div class="option-group-content">
+                    <div class="btn i18ne" onclick="siRotate.toggle()">Rotate view</div>
+                    <div class="btn i18ne" onclick="removeMode()">Remove seats...</div>
+                    <div class="btn dangerous i18ne" onclick="app.resetState()">Reset all seats</div>
+                </div>
+            </div>
             <div class="option-group">
                 <div class="option-group-title i18ne">Layout Setting</div>
                 <div class="option-group-content">
@@ -286,14 +294,6 @@
                     <label class="option-row labeled-input i18ne">Columns (width)<input type="number" min="1" id="seatinput-w" value="8"></label>
                     <label class="option-row labeled-input i18ne">Group columns<input type="number" min="1" id="seatinput-g" value="2"></label>
                     <div class="btn dangerous i18ne" onclick="quicksetting()">Apply</div>
-                </div>
-            </div>
-            <div class="option-group">
-                <div class="option-group-title i18ne">Actions</div>
-                <div class="option-group-content">
-                    <div class="btn i18ne" onclick="siRotate.toggle()">Rotate view</div>
-                    <div class="btn i18ne" onclick="removeMode()">Remove seats...</div>
-                    <div class="btn dangerous i18ne" onclick="app.resetState()">Reset all seats</div>
                 </div>
             </div>
             <div class="option-group">
@@ -390,7 +390,7 @@
             i18n.add2dArray([
                 ['en', 'zh', 'ja'],
                 ['Start!', '开始!', '開始!'],
-                ['(skip animation)', '(跳过动画)', '(アニメーション無しで)'],
+                ['(skip animation)', '(跳过动画)', '(アニメーション無し)'],
                 ['Options', '选项', 'オプション'],
                 ['Hide options', '收起选项', 'オプションを隠す'],
                 ['Platform', '讲台', null],
