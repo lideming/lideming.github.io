@@ -11,6 +11,7 @@
             max-width: 50em;
             margin: 0 auto;
             padding: 8px;
+            padding-bottom: 0;
             color: #232323;
             font-family: sans-serif;
             text-align: justify;
@@ -62,12 +63,13 @@
     <div class="block">
         <h1 style="text-align: center; margin: 0;">Yet A Public Toolbox</h1>
         <p>Hi, welcome to my 'toolbox'.</p>
-        <p>I know. This frontpage is so ugly.
+        <p><del>I know. This frontpage is so ugly.
             <br>(UPDATE: now it's a little better, just a little.)
-            <br>(UPDATE2: color scheme is updated.)</p>
+            <br>(UPDATE2: color scheme is updated.)</del>
+            <br>(UPDATE3: a little Material Design.)</p>
         <p>But it's really a <a href="https://motherfuckingwebsite.com/">Moth*****king Website</a>.
             <br>It loads really fast, and functions well on both your PC and mobile phone. <del>It even works on
-            old browsers (e.g. IE6).</del>
+                old browsers (e.g. IE6).</del>
         </p>
         <p>I am not going to write any fancy code to make it "looks like a modern website".</p>
         <p>Just kidding, it's just under construction. I did write such code.</p>
@@ -81,16 +83,24 @@
         </ul>
         <p>More tools may be added in the future!</p>
     </div>
+    <div class="block" id="sw">
+        <h2>Service Worker</h2>
+        <p><a href="https://developers.google.com/web/fundamentals/primers/service-workers/">Service worker</a>
+            can help this site working offline and loading freakin' fast.</p>
+        <p><span id="sw-text">Current state: <span id="sw-state"></span>.</span></p>
+        <p id="sw-btn-p" hidden>Action: <a id="sw-btn" href="javascript: serviceWorker()"></a></p>
+    </div>
     <small>
         <p style="text-align: right;"><a href="https://github.com/lideming/lideming.github.io">Hosted on Github</a></p>
     </small>
+
     <script>
         Node.prototype.appendAfter = function (ele) {
             this.parentNode.insertBefore(ele, this.nextSibling);
             return ele;
         };
-        Node.prototype.appendTextAfter = function (text) {
-            var node = document.createTextNode(text);
+        Node.prototype.appendTextAfter = function (stateText) {
+            var node = document.createTextNode(stateText);
             this.parentNode.insertBefore(node, this.nextSibling);
             return node;
         };
@@ -112,6 +122,68 @@
             window.open(t.href, null, 'width=600,height=400,toolbar=no');
             e.preventDefault();
         }
+        (function () {
+            var outerText = document.getElementById('sw-text');
+
+            if (!navigator.serviceWorker) {
+                outerText.textContent = "Your browser does not support service worker.";
+                return;
+            }
+            if (window.location.protocol != 'https:' && window.location.hostname != '127.0.0.1') {
+                outerText.textContent = "To enable service worker, you have to access this site over HTTPS protocol.";
+                return;
+            }
+            document.getElementById('sw-btn-p').hidden = false;
+
+            var btn = document.getElementById('sw-btn');
+            var stateText = document.getElementById('sw-state');
+
+            var swUrl = '/serviceWorker.js';
+            var registration = null;
+            var getAndCheck = function () {
+                return navigator.serviceWorker.getRegistration(swUrl).then(function (r) {
+                    check(r);
+                    return r;
+                });
+            };
+            var check = function (r) {
+                registration = r;
+                btn.textContent = r ? 'Disable' : 'Enable'
+                if (r) {
+                    console.log('registration: ', r);
+                    var sw = r.installing || r.waiting || r.active;
+                    console.log('sw: ', sw);
+                    stateText.textContent = sw.state;
+                    sw.addEventListener('statechange', function () {
+                        console.log('sw state changed: ' + sw.state);
+                        stateText.textContent = sw.state;
+                    });
+                } else {
+                    stateText.textContent = 'no registration';
+                }
+            }
+            var toggle = window.serviceWorker = function () {
+                if (!registration) {
+                    localStorage.removeItem('noServiceWorker');
+                    stateText.textContent = 'register...';
+                    navigator.serviceWorker.register(swUrl).then(function (r) {
+                        check(r);
+                    }).catch(function (err) {
+                        console.warn('register', err);
+                        stateText.textContent = 'register error';
+                    });
+                } else {
+                    localStorage.setItem('noServiceWorker', 'true');
+                    registration.unregister();
+                    check(null);
+                }
+            };
+            getAndCheck().then(function (r) {
+                if (!r && localStorage.getItem('noServiceWorker') != 'true') {
+                    toggle();
+                }
+            });
+        })();
     </script>
 </body>
 
