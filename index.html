@@ -40,6 +40,25 @@
             box-shadow: .2em .4em 1em rgba(0, 0, 0, .2);
         }
 
+        details {
+            margin: 1em;
+            padding: .5em;
+            border: #ccc .1em solid;
+            border-radius: .2em;
+        }
+
+        del {
+            opacity: .5;
+        }
+
+        summary {
+            cursor: pointer;
+            user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+        }
+
         @keyframes in {
             from {
                 transform: translate(0, -1em);
@@ -63,16 +82,19 @@
     <div class="block">
         <h1 style="text-align: center; margin: 0;">Yet A Public Toolbox</h1>
         <p>Hi, welcome to my 'toolbox'.</p>
-        <p><del>I know. This frontpage is so ugly.
-            <br>(UPDATE: now it's a little better, just a little.)
-            <br>(UPDATE2: color scheme is updated.)</del>
-            <br>(UPDATE3: a little Material Design.)</p>
-        <p>But it's really a <a href="https://motherfuckingwebsite.com/">Moth*****king Website</a>.
-            <br>It loads really fast, and functions well on both your PC and mobile phone. <del>It even works on
-                old browsers (e.g. IE6).</del>
-        </p>
-        <p>I am not going to write any fancy code to make it "looks like a modern website".</p>
-        <p>Just kidding, it's just under construction. I did write such code.</p>
+        <details>
+            <summary>More info</summary>
+            <p><del>I know. This frontpage is so ugly.
+                    <br>(UPDATE: now it's a little better, just a little.)
+                    <br>(UPDATE2: color scheme is updated.)</del>
+                <br>(UPDATE3: a little Material Design.)</p>
+            <p>But it's really a <a href="https://motherfuckingwebsite.com/">Moth*****king Website</a>.
+                <br>It loads really fast, and functions well on both your PC and mobile phone. <del>It even works on
+                    old browsers (e.g. IE6).</del>
+            </p>
+            <p>I am not going to write any fancy code to make it "looks like a modern website".</p>
+            <p>Just kidding, it's just under construction. I did write such code.</p>
+        </details>
     </div>
     <div class="block">
         <h2>Tools</h2>
@@ -81,13 +103,14 @@
             <li><a class="open-popup" href="toolbox/rng.html">Random Number Generator</a></li>
             <li><a class="open-popup" href="toolbox/randomseat.html">Random Seat Selector</a></li>
         </ul>
+        <p>Click on the "popup" links to try open as a popup. It may not work as expected, depends on your browser.</p>
         <p>More tools may be added in the future!</p>
     </div>
-    <div class="block" id="sw">
+    <div class="block">
         <h2>Service Worker</h2>
         <p><a href="https://developers.google.com/web/fundamentals/primers/service-workers/">Service worker</a>
             can help this site working offline and loading freakin' fast.</p>
-        <p><span id="sw-text">Current state: <span id="sw-state"></span>.</span></p>
+        <p><span id="sw-text">Current state: <span id="sw-state">(checking...)</span>.</span></p>
         <p id="sw-btn-p" hidden>Action: <a id="sw-btn" href="javascript: serviceWorker()"></a></p>
     </div>
     <small>
@@ -114,23 +137,18 @@
             var a = document.createElement('a');
             a.href = x.href;
             a.onclick = function () { openPopup(this, event) };
-            a.textContent = 'open as popup';
-            a.title = 'May not work, depends on your browser.';
+            a.textContent = 'popup';
             x.appendTextAfter(' (').appendAfter(a).appendTextAfter(')');
         });
         function openPopup(t, e) {
             window.open(t.href, null, 'width=600,height=400,toolbar=no');
             e.preventDefault();
         }
-        (function () {
+        window.swLoaded = function () {
             var outerText = document.getElementById('sw-text');
 
-            if (!navigator.serviceWorker) {
-                outerText.textContent = "Your browser does not support service worker.";
-                return;
-            }
-            if (window.location.protocol != 'https:' && window.location.hostname != '127.0.0.1') {
-                outerText.textContent = "To enable service worker, you have to access this site over HTTPS protocol.";
+            if (sw.notSupport) {
+                outerText.textContent = sw.notSupport;
                 return;
             }
             document.getElementById('sw-btn-p').hidden = false;
@@ -138,53 +156,21 @@
             var btn = document.getElementById('sw-btn');
             var stateText = document.getElementById('sw-state');
 
-            var swUrl = '/serviceWorker.js';
-            var registration = null;
-            var getAndCheck = function () {
-                return navigator.serviceWorker.getRegistration(swUrl).then(function (r) {
-                    check(r);
-                    return r;
-                });
+            sw.onStateChanged = function (state) {
+                btn.textContent = sw.registered ? 'Disable' : 'Enable'
+                stateText.textContent = sw.stateText;
             };
-            var check = function (r) {
-                registration = r;
-                btn.textContent = r ? 'Disable' : 'Enable'
-                if (r) {
-                    console.log('registration: ', r);
-                    var sw = r.installing || r.waiting || r.active;
-                    console.log('sw: ', sw);
-                    stateText.textContent = sw.state;
-                    sw.addEventListener('statechange', function () {
-                        console.log('sw state changed: ' + sw.state);
-                        stateText.textContent = sw.state;
-                    });
-                } else {
-                    stateText.textContent = 'no registration';
-                }
-            }
-            var toggle = window.serviceWorker = function () {
-                if (!registration) {
-                    localStorage.removeItem('noServiceWorker');
-                    stateText.textContent = 'register...';
-                    navigator.serviceWorker.register(swUrl).then(function (r) {
-                        check(r);
-                    }).catch(function (err) {
-                        console.warn('register', err);
-                        stateText.textContent = 'register error';
-                    });
-                } else {
-                    localStorage.setItem('noServiceWorker', 'true');
-                    registration.unregister();
-                    check(null);
-                }
+
+            window.serviceWorker = function () {
+                sw.toggle();
             };
-            getAndCheck().then(function (r) {
-                if (!r && localStorage.getItem('noServiceWorker') != 'true') {
-                    toggle();
-                }
+
+            sw.check(true).then(function (r) {
+                console.log('sw state checking resolved: ' + r);
             });
-        })();
+        };
     </script>
+    <script async defer onload="swLoaded()" src="/serviceWorker.js"></script>
 </body>
 
 </html>
