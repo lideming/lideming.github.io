@@ -185,7 +185,7 @@
             justify-content: center;
             position: sticky;
             bottom: 0;
-            /* align-items: baseline; */
+            align-items: flex-end;
         }
 
         .option-group {
@@ -302,6 +302,7 @@
                     <div class="btn i18ne" onclick="switchLang()">Language</div>
                     <div class="btn i18ne" id="autoDisable">Seat auto-disable</div>
                     <div class="btn i18ne" id="runAnimation">Running animation</div>
+                    <div class="btn i18ne" id="fullscreen">Fullscreen</div>
                 </div>
             </div>
             <div class="option-group hidden" id="removing">
@@ -401,7 +402,7 @@
                 ['Apply', '应用', '適用'],
                 ['Actions', '操作', '動作'],
                 ['Rotate view', '旋转视图', 'ビューを回転'],
-                ['Seat auto-disable', '自动禁用座位', '座席の自動ディセイブ'],
+                ['Seat auto-disable', '自动禁用座位', '座席の自動オフ'],
                 ['Running animation', '启用动画', 'アニメーション'],
                 ['Remove seats...', '移除座位...', '座席を削除...'],
                 ['Reset all seats', '重置所有座位', 'すべての座席をリセット'],
@@ -411,7 +412,8 @@
                 ['Remove 1 seat', '移除 1 个座位', '1 席を削除する'],
                 ['Remove {n} seats', '移除 {n} 个座位', '{n} 席を削除する'],
                 ['Other Settings', '其他设定', 'その他設定'],
-                ['Language', '语言 / Language', '言語 / Language']
+                ['Language', '语言 / Language', '言語 / Language'],
+                ['Fullscreen', '全屏模式', '全画面表示']
             ]);
             i18n.onLangChanged = null;
             i18n.setLang = function (lang) {
@@ -773,7 +775,7 @@
         var SettingItem = function (key, type, initial) {
             this.key = key;
             this.type = typeof type == 'string' ? SettingItem.types[type] : type;
-            var str = localStorage.getItem(key);
+            var str = key ? localStorage.getItem(key) : null;
             this.set(str ? this.type.deserilize(str) : initial, true);
         };
         SettingItem.prototype.render = function (fn) {
@@ -798,7 +800,7 @@
         SettingItem.prototype.set = function (data, dontSave) {
             this.data = data;
             this.onRender && this.onRender(data);
-            if (!dontSave) localStorage.setItem(this.key, this.type.serialize(data));
+            if (!dontSave && this.key) localStorage.setItem(this.key, this.type.serialize(data));
         };
         SettingItem.prototype.toggle = function () {
             if (this.type != SettingItem.types.bool) throw new Error('only for bool type');
@@ -934,6 +936,38 @@
         var siLang = new SettingItem('lang', 'str', 'en').render(function (lang) {
             i18n.setLang(lang);
         });
+
+        var isFullScreen = function () {
+            return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+        };
+
+        var toggleFullScreen = function (value) {
+            // if (value === undefined) {
+            //     value = !isFullScreen();
+            // }
+            if (value) {
+                var element = document.documentElement;
+
+                // Check which implementation is available
+                var requestMethod = element.requestFullscreen ||
+                    element.webkitRequestFullscreen ||
+                    element.webkitRequestFullScreen ||
+                    element.mozRequestFullScreen ||
+                    element.msRequestFullscreen;
+
+                if (requestMethod) {
+                    requestMethod.apply(element);
+                }
+            } else {
+                (document.webkitExitFullscreen || document.mozCancelFullScreen).apply(document);
+            }
+        };
+
+        var siFullscreen = new SettingItem(null, 'bool', isFullScreen())
+        .bindToBtn(document.getElementById('fullscreen'))
+        .render(function (fs) {
+            toggleFullScreen(fs);
+        })
 
         tryResume() || quicksetting();
     </script>
