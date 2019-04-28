@@ -37,7 +37,7 @@
                 } else {
                     return fetch(event.request).then(function (response) {
                         if (response.ok) {
-                            let responseClone = response.clone();
+                            var responseClone = response.clone();
                             caches.open('v1').then(function (cache) {
                                 cache.put(event.request, responseClone);
                             });
@@ -116,7 +116,7 @@
             stateChanged('register...');
             navigator.serviceWorker.register(swUrl).then(function (r) {
                 checkReg(r);
-            }).catch(function (err) {
+            })['catch'](function (err) {
                 console.warn('register', err);
                 stateChanged('register error');
             });
