@@ -18,7 +18,7 @@
         }
 
         body.dark {
-            background: black;
+            background: #1e1e1e;
             color: white;
         }
 
@@ -194,6 +194,7 @@
             position: sticky;
             bottom: 0;
             align-items: flex-end;
+            pointer-events: none;
         }
 
         .option-group {
@@ -206,7 +207,8 @@
             min-width: 10em;
             max-width: 16em;
             border-radius: .2em;
-            box-shadow: 2px 2px 10px rgba(0, 0, 0, .4);
+            box-shadow: 2px 2px 10px gray;
+            pointer-events: initial;
         }
 
         .option-group-title {
@@ -307,20 +309,22 @@
             </div>
             <div class="option-group">
                 <div class="option-group-title i18ne">Other Settings</div>
-                <div class="option-group-content i18ne">
+                <div class="option-group-content">
                     <div class="btn i18ne" onclick="switchLang()">Language</div>
                     <div class="btn i18ne" id="autoDisable">Seat auto-disable</div>
                     <div class="btn i18ne" id="runAnimation">Running animation</div>
-                    <div class="btn i18ne" id="fullscreen">Fullscreen</div>
+                    <div class="btn i18ne" id="scarier">Scarier animation</div>
+                    <div class="btn i18ne" id="soundFx">Sound FX</div>
                     <div class="btn i18ne" id="darkTheme">Dark theme</div>
+                    <div class="btn i18ne" id="fullscreen">Fullscreen</div>
                 </div>
             </div>
             <div class="option-group hidden" id="removing">
-                <div class="option-group-title i18ne">Removing Seat</div>
+                <div class="option-group-title">Removing Seat</div>
                 <div class="option-group-content" style="max-width: 20em;">
                     <p class="i18ne">Now click on seats that you want to remove.</p>
                     <div class="option-row">
-                        <div class="btn i18ne" id="proceedRemove" style="margin: .15em;" onclick="removeMode()">Proceed to remove</div>
+                        <div class="btn" id="proceedRemove" style="margin: .15em;" onclick="removeMode()"></div>
                         <div class="btn i18ne" id="cancelRemove" style="margin: .15em;" onclick="removeMode(true)">Cancel</div>
                     </div>
                 </div>
@@ -380,7 +384,7 @@
             }
         };
         I18n.prototype.renderElements = function (elements) {
-            console.log('rendering');
+            console.log('i18n rendering');
             elements.forEach(x => {
                 for (const node of x.childNodes) {
                     if (node.nodeType == Node.TEXT_NODE) {
@@ -389,8 +393,11 @@
                         if (r) {
                             node.beforeI18n = node.beforeI18n || node.textContent;
                             node.textContent = r;
-                        } else if (node.beforeI18n) {
-                            node.textContent = node.beforeI18n;
+                        } else {
+                            if (node.beforeI18n) {
+                                node.textContent = node.beforeI18n;
+                            }
+                            console.log('missing key for node', node);
                         }
                     }
                 }
@@ -425,6 +432,8 @@
                 ['Language', '语言 / Language', '言語 / Language'],
                 ['Fullscreen', '全屏模式', '全画面表示'],
                 ['Dark theme', '暗色主题', null],
+                ['Sound FX', '效果音', null],
+                ['Scarier animation', '更吓人的动画', null],
             ]);
             i18n.onLangChanged = null;
             i18n.setLang = function (lang) {
@@ -451,6 +460,13 @@
                 };
             };
             var rng = new RNG();
+            var randomOffset = function (offset) {
+                var r = rng.getRandomInt() % (offset * 2 + 1);
+                return offset - r;
+            };
+            var randomOffsetF = function (offset) {
+                return offset - Math.random() * offset * 2
+            };
             var pointsFromRects = function (arr) {
                 const points = [];
                 for (const rect of arr) {
@@ -548,12 +564,12 @@
             var curM = null; // used when there are multiple 'cur' seats
 
             // Mode control:
-            var mode = null;
             var Modes = {
                 NORMAL: 'normal',
                 RUNNING: 'running',
                 SELECT: 'select'
             };
+            var mode = Modes.NORMAL;
             var onLeaveMode = null;
             var enterMode = function (newMode, leaveAction) {
                 if (mode != Modes.NORMAL) leaveMode();
@@ -625,7 +641,7 @@
                     if (p.x > maxX) maxX = p.x;
                     if (p.y > maxY) maxY = p.y;
                 }
-                console.log(seats);
+                console.log('seats updated:', seats);
                 // console.log(views);
                 container.style.width = SEATW * (maxX + 1) + 'em';
                 container.style.height = SEATH * (maxY + 1) + 'em';
@@ -718,6 +734,40 @@
                 var len = seats.length - getDisables();
                 return len + rng.getRandomInt() % len;
             };
+
+            var SoundFX = function () {
+                var error = null;
+                var actx = null;
+                this.beep = function (final) {
+                    if (error) return;
+                    try {
+                        if (!actx) actx = new AudioContext();
+                        var curTime = actx.currentTime;
+                        var duration = (final ? .1 : .015);
+                        var gain = actx.createGain();
+                        gain.connect(actx.destination);
+                        gain.gain.setValueAtTime(0, curTime);
+                        gain.gain.setValueAtTime((final ? .15 : .1), curTime + .001);
+                        gain.gain.setValueAtTime((final ? .15 : .1), curTime + duration - .001);
+                        gain.gain.setValueAtTime(0, curTime + duration);
+                        var osc = actx.createOscillator();
+                        osc.frequency.value = final ? (784 * 2) : 784;
+                        osc.type = 'square';
+                        osc.connect(gain);
+                        osc.start(0);
+                        osc.stop(curTime + duration);
+                    } catch (e) {
+                        error = e;
+                    }
+                };
+            };
+            this.sfx = new SoundFX();
+            this.playSoundFX = false;
+            var beep = (final) => {
+                if (this.playSoundFX) this.sfx.beep(final);
+            };
+
+            this.scarier = true;
             var running = null;
             this.stopRun = function (keepCur) {
                 if (running !== null) {
@@ -745,21 +795,35 @@
                 }
 
                 if (mode != Modes.RUNNING) enterMode(Modes.RUNNING, () => this.stopRun());
+                var scarier = this.scarier;
+                var slow1 = 16;
+                var slow2 = 4;
+                if (scarier) {
+                    slow1 += randomOffset(3);
+                    slow2 = 3 + randomOffset(2);
+                }
+                console.log('slow1=' + slow1 + ' slow2=' + slow2);
                 var update = () => {
                     steps--;
-                    this.next();
-                    if (steps > 0) {
+                    if (steps > 0 || (scarier && steps == 0 && (rng.getRandomInt() % 2))) {
+                        beep(false);
+                        this.next();
                         var timeout = 30;
-                        if (steps < 16) {
-                            timeout *= Math.pow(1.2, 16 - steps);
+                        if (steps < slow1) {
+                            timeout *= Math.pow(1.2, slow1 - steps);
                         }
-                        if (steps < 4) {
-                            timeout *= Math.pow(1.2, 4 - steps);
+                        if (steps < slow2) {
+                            timeout *= Math.pow(1.2, slow2 - steps);
                         }
+                        if (steps == 0) timeout *= .6 + randomOffsetF(.2);
                         running = setTimeout(update, timeout);
                     } else {
+                        beep(true);
                         console.log("final", cur);
-                        this.setActive(cur, true);
+                        if (steps < 0)
+                            this.setActive(cur, true);
+                        else
+                            this.next(1, true);
                         running = null;
                         leaveMode(true);
                         this.onStateChanged();
@@ -789,8 +853,8 @@
             var str = key ? localStorage.getItem(key) : null;
             this.set(str ? this.type.deserilize(str) : initial, true);
         };
-        SettingItem.prototype.render = function (fn) {
-            fn(this.data);
+        SettingItem.prototype.render = function (fn, dontRaiseNow) {
+            if (!dontRaiseNow) fn(this.data);
             var oldFn = this.onRender;
             var newFn = fn;
             if (oldFn) fn = function (x) { oldFn(x); newFn(x); };
@@ -957,6 +1021,7 @@
             // if (value === undefined) {
             //     value = !isFullScreen();
             // }
+            if (value === isFullScreen()) return;
             if (value) {
                 var element = document.documentElement;
 
@@ -979,15 +1044,29 @@
         .bindToBtn(document.getElementById('fullscreen'))
         .render(function (fs) {
             toggleFullScreen(fs);
-        })
+        }, true);
 
-        var siFullscreen = new SettingItem('darkTheme', 'bool', false)
+        var siDarkTheme = new SettingItem('darkTheme', 'bool', false)
         .bindToBtn(document.getElementById('darkTheme'))
         .render(function (val) {
             document.body.classList.toggle('dark', val);
         });
 
+        var siSoundFX = new SettingItem('rs-soundFx', 'bool', app.playSoundFX)
+        .bindToBtn(document.getElementById('soundFx'))
+        .render(function (val) {
+            app.playSoundFX = val;
+        });
+
+        var siSoundFX = new SettingItem('rs-scarier', 'bool', app.scarier)
+        .bindToBtn(document.getElementById('scarier'))
+        .render(function (val) {
+            app.scarier = val;
+        });
+
         tryResume() || quicksetting();
+
+        setTimeout(function () { console.info('Welcome to dev console.'); }, 500);
     </script>
     <script async defer onload="sw.check(true)" src="/serviceWorker.js"></script>
 </body>
