@@ -13,6 +13,13 @@
             font-family: sans-serif;
             /* font-size: 16px; */
             line-height: 1.1em;
+            transition: background .5s, color .5s;
+            background: white;
+        }
+
+        body.dark {
+            background: black;
+            color: white;
         }
 
         * {
@@ -34,6 +41,7 @@
             margin: .2em auto;
             border: .1em solid black;
             background: #e0e0e0;
+            color: black;
         }
 
         .seats {
@@ -193,6 +201,7 @@
             flex-direction: column;
             margin: .6em;
             background: #eee;
+            color: black;
             padding: .5em .5em;
             min-width: 10em;
             max-width: 16em;
@@ -303,6 +312,7 @@
                     <div class="btn i18ne" id="autoDisable">Seat auto-disable</div>
                     <div class="btn i18ne" id="runAnimation">Running animation</div>
                     <div class="btn i18ne" id="fullscreen">Fullscreen</div>
+                    <div class="btn i18ne" id="darkTheme">Dark theme</div>
                 </div>
             </div>
             <div class="option-group hidden" id="removing">
@@ -348,7 +358,7 @@
                     if (arg.hasOwnProperty(key)) {
                         const val = arg[key];
                         r = r.replace('{' + key + '}', val);
-                        // Note that it only replace the first occurrence.
+                        // Note that it only replaces the first occurrence.
                     }
                 }
             }
@@ -413,7 +423,8 @@
                 ['Remove {n} seats', '移除 {n} 个座位', '{n} 席を削除する'],
                 ['Other Settings', '其他设定', 'その他設定'],
                 ['Language', '语言 / Language', '言語 / Language'],
-                ['Fullscreen', '全屏模式', '全画面表示']
+                ['Fullscreen', '全屏模式', '全画面表示'],
+                ['Dark theme', '暗色主题', null],
             ]);
             i18n.onLangChanged = null;
             i18n.setLang = function (lang) {
@@ -930,7 +941,8 @@
         });
 
         function switchLang(newLang) {
-            siLang.loop(['en', 'zh', 'ja']);
+            siLang.loop(['en', 'zh']);
+            // Not including 'ja' for now.
         }
 
         var siLang = new SettingItem('lang', 'str', 'en').render(function (lang) {
@@ -968,6 +980,12 @@
         .render(function (fs) {
             toggleFullScreen(fs);
         })
+
+        var siFullscreen = new SettingItem('darkTheme', 'bool', false)
+        .bindToBtn(document.getElementById('darkTheme'))
+        .render(function (val) {
+            document.body.classList.toggle('dark', val);
+        });
 
         tryResume() || quicksetting();
     </script>
