@@ -35,6 +35,11 @@
         a:hover {
             color: #00aeff;
         }
+        .extlink {
+            background: url('../img/external-link.svg') center right no-repeat;
+            background-size: 1em;
+            padding-right: 1em;
+        }
         
         .btn {
             display: flex;
@@ -108,8 +113,8 @@
             Timer starts from: <input type="text" id="input-time" onchange="changed_time()" onkeypress="postFunc(changed_time())" placeholder="time (?m?s)" value="3m" size="10"><br>
             Ring plays at: <input type="text" id="input-ringtime" onchange="changed_ringtime()" onkeypress="postFunc(changed_ringtime())" placeholder="ringtime" value="30s" size="10"><br>
             <button class="btn inline" id="btn-sound" onclick="click_sound()">Test Ring</button>
-            <button class="btn inline" id="btn-theme" onclick="click_theme()">Switch Theme</button><br>
-            <small>The ringing sound is found from <a href="http://soundbible.com/1746-Ship-Bell.html">here</a> (licensed under Attribution 3.0).
+            <button class="btn inline" id="btn-theme">Dark Theme</button><br>
+            <small>The ringing sound is found from <a class="extlink" href="http://soundbible.com/1746-Ship-Bell.html">here</a> (licensed under Attribution 3.0).
                 <br>This webpage is made by Li Deming with code and ♥.
                 <br><a href="#popup" onclick="openPopup(this, event)">Try open as popup</a></small>
         </div>
@@ -324,17 +329,6 @@
             getEle('btn-more').textContent = moreLessStrings[(getEle('morepanel').hidden = !nowHidden) ? 0 : 1];
         }
 
-        var themeBlack = false;
-        function renderTheme() {
-            document.body.style.color = themeBlack ? 'white' : 'black';
-            document.body.style.backgroundColor = themeBlack ? 'black' : 'white';
-        }
-        function click_theme() {
-            themeBlack ^= true;
-            renderTheme();
-        }
-        renderTheme();
-
         var autoHide = false;
         var autoHideTimer = null;
 
@@ -373,6 +367,69 @@
         document.addEventListener('mousedown', onMouseActions);
         document.addEventListener('touchstart', onMouseActions);
         document.addEventListener('keydown', onMouseActions);
+
+        
+        (function () {
+            var SettingItem = function (key, type, initial) {
+                this.key = key;
+                this.type = typeof type == 'string' ? SettingItem.types[type] : type;
+                var str = key ? localStorage.getItem(key) : null;
+                this.set(str ? this.type.deserilize(str) : initial, true);
+            };
+            SettingItem.prototype.render = function (fn, dontRaiseNow) {
+                if (!dontRaiseNow) fn(this.data);
+                var oldFn = this.onRender;
+                var newFn = fn;
+                if (oldFn) fn = function (x) { oldFn(x); newFn(x); };
+                this.onRender = fn;
+                return this;
+            };
+            SettingItem.prototype.bindToBtn = function (btn) {
+                if (this.type != SettingItem.types.bool) throw new Error('only for bool type');
+                var span = document.createElement('span');
+                btn.insertBefore(span, btn.firstChild);
+                this.render(function (x) {
+                    btn.classList.toggle('disabled', !x);
+                    span.textContent = x ? "✅" : "❌";
+                });
+                var thiz = this;
+                btn.addEventListener('click', function () { thiz.toggle(); });
+                return this;
+            };
+            SettingItem.prototype.set = function (data, dontSave) {
+                this.data = data;
+                this.onRender && this.onRender(data);
+                if (!dontSave && this.key) localStorage.setItem(this.key, this.type.serialize(data));
+            };
+            SettingItem.prototype.toggle = function () {
+                if (this.type != SettingItem.types.bool) throw new Error('only for bool type');
+                this.set(!this.data);
+            };
+            SettingItem.prototype.loop = function (arr) {
+                var curData = this.data;
+                var oldIndex = arr.findIndex(function (x) { return x == curData; });
+                var newData = arr[(oldIndex + 1) % arr.length];
+                this.set(newData);
+            };
+            SettingItem.types = {
+                bool: {
+                    serialize: function (data) { return data ? 'true' : 'false'; },
+                    deserilize: function (str) { return str == 'true' ? true : str == 'false' ? false : undefined; }
+                },
+                str: {
+                    serialize: function (x) { return x; },
+                    deserilize: function (x) { return x; }
+                }
+            };
+            window.SettingItem = SettingItem;
+        })();
+
+        var siDarkTheme = new SettingItem('darkTheme', 'bool', false)
+        .bindToBtn(document.getElementById('btn-theme'))
+        .render(function (val) {
+            document.body.style.color = val ? 'white' : 'black';
+            document.body.style.backgroundColor = val ? 'black' : 'white';
+        });
     </script>
     <script async defer onload="sw.check(true)" src="/serviceWorker.js"></script>
 </body>

@@ -14,18 +14,24 @@
             padding-bottom: 0;
             color: #232323;
             font-family: sans-serif;
-            text-align: justify;
+            /* text-align: justify; */
+        }
+
+        body.dark {
+            background: black;
         }
 
         h1,
         h2 {
             background: #1976d2;
             color: white;
+            margin: 0;
             padding: .5em 1em;
             /* animation: in .8s; */
         }
 
         p,
+        .plike,
         ul,
         li {
             margin: 1em;
@@ -34,10 +40,16 @@
 
         .block {
             background: #fafafa;
-            padding-bottom: .5em;
+            margin: 1em 0;
+            padding-bottom: .3em;
             animation: in .8s;
             border-radius: .2em;
-            box-shadow: .2em .4em 1em rgba(0, 0, 0, .2);
+            box-shadow: .2em .4em 1em rgba(127, 127, 127, .4);
+        }
+
+        .dark .block {
+            background: #111;
+            color: #ddd;
         }
 
         details {
@@ -75,6 +87,44 @@
         a:hover {
             color: #63a4ff;
         }
+
+        .extlink {
+            background: url('img/external-link.svg') center right no-repeat;
+            background-size: 1em;
+            padding-right: 1em;
+        }
+
+        .btn {
+            display: inline-block;
+            vertical-align: baseline;
+            text-align: center;
+            transition: all .3s;
+            padding: 0 .4em;
+            min-width: 3em;
+            line-height: 1.5em;
+            background: hsl(207, 90%, 54%);
+            color: white;
+            box-shadow: 0 0 .3em gray;
+            cursor: pointer;
+            -ms-user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transition: all .05s;
+            background: hsl(207, 90%, 61%);
+        }
+
+        .btn.btn-down,
+        .btn:active {
+            transition: all .05s;
+            background: hsl(207, 90%, 70%);
+            box-shadow: 0 0 .1em gray;
+        }
     </style>
 </head>
 
@@ -88,7 +138,7 @@
                     <br>(UPDATE: now it's a little better, just a little.)
                     <br>(UPDATE2: color scheme is updated.)</del>
                 <br>(UPDATE3: a little Material Design.)</p>
-            <p>But it's really a <a href="https://motherfuckingwebsite.com/">Moth*****king Website</a>.
+            <p>But it's really a <a class="extlink" href="https://motherfuckingwebsite.com/">Moth*****king Website</a>.
                 <br>It loads really fast, and functions well on both your PC and mobile phone. <del>It even works on
                     old browsers (e.g. IE6).</del>
             </p>
@@ -103,15 +153,21 @@
             <li><a class="open-popup" href="toolbox/rng.html">Random Number Generator</a></li>
             <li><a class="open-popup" href="toolbox/randomseat.html">Random Seat Selector</a></li>
         </ul>
-        <p>Click on the "popup" links to try open as a popup. It may not work as expected, depends on your browser.</p>
+        <p>Click on "popup" buttons to try open as a popup. It may not work as expected, depends on your browser.</p>
         <p>More tools may be added in the future!</p>
     </div>
     <div class="block">
         <h2>Service Worker</h2>
-        <p><a href="https://developers.google.com/web/fundamentals/primers/service-workers/">Service worker</a>
+        <p><a class="extlink" href="https://developers.google.com/web/fundamentals/primers/service-workers/">Service worker</a>
             can help this site working offline and loading freakin' fast.</p>
         <p><span id="sw-text">Current state: <span id="sw-state">(checking...)</span>.</span></p>
-        <p id="sw-btn-p" hidden>Action: <a id="sw-btn" href="javascript: serviceWorker()"></a></p>
+        <div class="plike" id="sw-btn-p" hidden><div class="btn" id="sw-btn" onclick="serviceWorker()"></div></div>
+    </div>
+    <div class="block">
+        <h2>Settings</h2>
+        <p>The title is "setting<b>s</b>", even there's only one setting item for now.</p>
+        <p>"These settings" may affect other pages on this site.</p>
+        <div class="plike"><div class="btn" id="darkTheme">Dark Theme</div></div>
     </div>
     <small>
         <p style="text-align: right;"><a href="https://github.com/lideming/lideming.github.io">Hosted on Github</a></p>
@@ -135,19 +191,28 @@
                 }
             };
             document.querySelectorAll('.open-popup').forEach(function (x) {
-                var a = document.createElement('a');
+                var a = document.createElement('div');
+                a.className = 'btn';
                 a.href = x.href;
+                a.style.fontSize = '75%';
+                a.style.marginLeft = '.5em';
+                a.style.verticalAlign = 'middle';
                 a.onclick = function () { openPopup(this, event) };
-                a.textContent = 'popup';
-                x.appendTextAfter(' (').appendAfter(a).appendTextAfter(')');
+                a.textContent = 'Popup';
+                x.appendAfter(a);
             });
         }
         function openPopup(t, e) {
             window.open(t.href, null, 'width=600,height=400,toolbar=no');
             e.preventDefault();
         }
-        window.swLoaded = function () {
+        window.swLoaded = function (ok) {
             var outerText = document.getElementById('sw-text');
+
+            if (!ok) {
+                outerText.textContent = '(Failed to load the script.)';
+                return;
+            }
 
             if (sw.notSupport) {
                 outerText.textContent = sw.notSupport;
@@ -171,8 +236,69 @@
                 console.log('sw state checking resolved: ' + r);
             });
         };
+
+        (function () {
+            var SettingItem = function (key, type, initial) {
+                this.key = key;
+                this.type = typeof type == 'string' ? SettingItem.types[type] : type;
+                var str = key ? localStorage.getItem(key) : null;
+                this.set(str ? this.type.deserilize(str) : initial, true);
+            };
+            SettingItem.prototype.render = function (fn, dontRaiseNow) {
+                if (!dontRaiseNow) fn(this.data);
+                var oldFn = this.onRender;
+                var newFn = fn;
+                if (oldFn) fn = function (x) { oldFn(x); newFn(x); };
+                this.onRender = fn;
+                return this;
+            };
+            SettingItem.prototype.bindToBtn = function (btn) {
+                if (this.type != SettingItem.types.bool) throw new Error('only for bool type');
+                var span = document.createElement('span');
+                btn.insertBefore(span, btn.firstChild);
+                this.render(function (x) {
+                    btn.classList.toggle('disabled', !x);
+                    span.textContent = x ? "✅" : "❌";
+                });
+                var thiz = this;
+                btn.addEventListener('click', function () { thiz.toggle(); });
+                return this;
+            };
+            SettingItem.prototype.set = function (data, dontSave) {
+                this.data = data;
+                this.onRender && this.onRender(data);
+                if (!dontSave && this.key) localStorage.setItem(this.key, this.type.serialize(data));
+            };
+            SettingItem.prototype.toggle = function () {
+                if (this.type != SettingItem.types.bool) throw new Error('only for bool type');
+                this.set(!this.data);
+            };
+            SettingItem.prototype.loop = function (arr) {
+                var curData = this.data;
+                var oldIndex = arr.findIndex(function (x) { return x == curData; });
+                var newData = arr[(oldIndex + 1) % arr.length];
+                this.set(newData);
+            };
+            SettingItem.types = {
+                bool: {
+                    serialize: function (data) { return data ? 'true' : 'false'; },
+                    deserilize: function (str) { return str == 'true' ? true : str == 'false' ? false : undefined; }
+                },
+                str: {
+                    serialize: function (x) { return x; },
+                    deserilize: function (x) { return x; }
+                }
+            };
+            window.SettingItem = SettingItem;
+        })();
+
+        var siDarkTheme = new SettingItem('darkTheme', 'bool', false)
+        .bindToBtn(document.getElementById('darkTheme'))
+        .render(function (val) {
+            document.body.classList.toggle('dark', val);
+        });
     </script>
-    <script async defer onload="swLoaded()" src="/serviceWorker.js"></script>
+    <script async defer onload="swLoaded(true)" onerror="swLoaded(false)" src="/serviceWorker.js"></script>
 </body>
 
 </html>
