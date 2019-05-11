@@ -25,6 +25,9 @@
         }
         body {
             transition: background 1s;
+            user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
         }
         a {
             color: #0091d4;
@@ -45,6 +48,7 @@
             /* margin: .5em; */
             background: #2196F3;
             color: white;
+            border: none;
             /* border-radius: .3em; */
             box-shadow: 0 0 .3em gray;
             cursor: pointer;
@@ -54,6 +58,11 @@
             user-select: none;
             position: relative;
             overflow: hidden;
+            outline: none;
+        }
+
+        .btn {
+            min-width: 4em;
         }
 
         .btn.inline {
@@ -75,16 +84,15 @@
             background: rgb(0, 225, 255);
             /* background: darkgray; */
             box-shadow: 0 0 .1em gray;
+            outline: none;
         }
 
-        .btn-progress {
-            transition: opacity .3s;
-            position: absolute;
-            background: black;
-            opacity: 0;
-            bottom: 0;
-            left: 0;
-            height: .2em;
+        .btn.disabled, .btn:disabled {
+            background: rgb(37, 78, 105);
+        }
+
+        .btn.disabled:hover, .btn:disabled:hover {
+            background: rgb(66, 94, 112);
         }
 
         .btn-progress.btn-progress-show {
@@ -96,20 +104,20 @@
     <h1>Countdown Timer</h1>
     <h1 id="cd-box"><span id="cd-min">-</span> m <span id="cd-sec">--</span>.<span id="cd-dsec">-</span> s</h1>
     <div id="ctrlpanel">
-        <div id="morepanel" hidden>
+        <div id="morepanel" style="padding-bottom: .3em;" hidden>
             Timer starts from: <input type="text" id="input-time" onchange="changed_time()" onkeypress="postFunc(changed_time())" placeholder="time (?m?s)" value="3m" size="10"><br>
             Ring plays at: <input type="text" id="input-ringtime" onchange="changed_ringtime()" onkeypress="postFunc(changed_ringtime())" placeholder="ringtime" value="30s" size="10"><br>
-            <div class="btn inline" id="btn-sound" onclick="click_sound()">Test Ring</div>
-            <div class="btn inline" id="btn-theme" onclick="click_theme()">Switch Theme</div><br>
+            <button class="btn inline" id="btn-sound" onclick="click_sound()">Test Ring</button>
+            <button class="btn inline" id="btn-theme" onclick="click_theme()">Switch Theme</button><br>
             <small>The ringing sound is found from <a href="http://soundbible.com/1746-Ship-Bell.html">here</a> (licensed under Attribution 3.0).
                 <br>This webpage is made by Li Deming with code and ♥.
                 <br><a href="#popup" onclick="openPopup(this, event)">Try open as popup</a></small>
         </div>
-        <div class="btn inline" id="btn-toggle" onclick="click_toggle()">Toggle</div>
-        <div class="btn inline" id="btn-set" onclick="click_set()">Set/Reset</div>
-        <!-- <div class="btn inline" id="btn-start" onclick="click_start()">Start</div> -->
-        <!-- <div class="btn inline" id="btn-pause" onclick="click_pause()">Pause</div> -->
-        <div class="btn inline" id="btn-more" onclick="click_more()">More/Less Options</div>
+        <button class="btn inline" id="btn-toggle" onclick="click_toggle()">Toggle</button>
+        <button class="btn inline" id="btn-set" onclick="click_set()">Set/Reset</button>
+        <!-- <button class="btn inline" id="btn-start" onclick="click_start()">Start</button> -->
+        <!-- <button class="btn inline" id="btn-pause" onclick="click_pause()">Pause</button> -->
+        <button class="btn inline" id="btn-more" onclick="click_more()">More/Less Options</button>
         <span id="msg"></span>
     </div>
     <script>

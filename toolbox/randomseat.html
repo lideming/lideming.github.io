@@ -119,13 +119,20 @@
             overflow: hidden;
         }
 
+        .btn:hover {
+            transition: all .05s;
+            background: hsl(207, 90%, 61%);
+        }
+
         .btn.btn-down {
             cursor: default;
         }
 
-        .btn:hover {
+        .btn.btn-down,
+        .btn:active {
             transition: all .05s;
-            background: hsl(207, 90%, 61%);
+            background: hsl(207, 90%, 70%);
+            box-shadow: 0 0 .1em gray;
         }
 
         .btn.dark {
@@ -158,14 +165,6 @@
 
         .btn.btn.dangerous:hover {
             background: hsl(0, 100%, 70%)
-        }
-
-        .btn.btn-down,
-        .btn:active {
-            transition: all .05s;
-            background: hsl(207, 90%, 70%);
-            /* background: darkgray; */
-            box-shadow: 0 0 .1em gray;
         }
 
         .btn-progress {
@@ -738,11 +737,16 @@
             var SoundFX = function () {
                 var error = null;
                 var actx = null;
+                var lastBeepEnd = null;
                 this.beep = function (final) {
                     if (error) return;
                     try {
                         if (!actx) actx = new AudioContext();
                         var curTime = actx.currentTime;
+                        if (lastBeepEnd !== null && curTime < lastBeepEnd) {
+                            console.log('skipped a beep (' + final + ')');
+                            return;
+                        }
                         var duration = (final ? .1 : .015);
                         var gain = actx.createGain();
                         gain.connect(actx.destination);
@@ -755,7 +759,7 @@
                         osc.type = 'square';
                         osc.connect(gain);
                         osc.start(0);
-                        osc.stop(curTime + duration);
+                        osc.stop(lastBeepEnd = curTime + duration);
                     } catch (e) {
                         error = e;
                     }
