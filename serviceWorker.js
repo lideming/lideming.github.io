@@ -6,7 +6,8 @@
             '/toolbox/randomseat.html',
             '/toolbox/countdown.html',
             '/toolbox/countdown-ring.mp3',
-            '/img/external-link.svg'
+            '/img/external-link.svg',
+            '/toolbox/minesweeper.html'
         ];
 
         var updateCache = function () {

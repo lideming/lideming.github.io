@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Minesweeper</title>
+    <style>
+        #field {
+            margin: .2em;
+            font-size: 24px;
+            box-shadow: gray 0 0 .5em;
+            display: inline-block;
+        }
+
+        .grid {
+            background: #1565c0;
+            /* transition: background .2s; */
+            width: 100%;
+            height: 100%;
+            line-height: 2em;
+            font-size: 50%;
+            text-align: center;
+            color: white;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        .grid-2 {
+            background: #1976d2;
+        }
+
+        .grid:hover {
+            transition: background .05s;
+            background: #42a5f5;
+        }
+
+        .grid.open {
+            background: #ccc;
+            color: black;
+        }
+
+        .grid-2.open {
+            background: #ddd;
+        }
+
+        .grid.mine {
+            background: #b71c1c;
+        }
+
+        .grid.flag::after {
+            content: 'O';
+            font-weight: bold;
+            color: #ef5350;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            margin: .6em;
+            background: #eee;
+            color: black;
+            padding: .5em .5em;
+            min-width: 10em;
+            max-width: 16em;
+            border-radius: .2em;
+            box-shadow: 2px 2px 10px gray;
+            pointer-events: initial;
+        }
+
+        .option-group-title {
+            font-size: 110%;
+            height: 1.5em;
+            font-weight: bold;
+            padding-bottom: .3em;
+            text-align: center;
+        }
+
+        .option-group-content {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            /* justify-content: space-around; */
+        }
+
+        .option-group-content>* {
+            margin: .15em 0;
+            /* height: 1.6em; */
+            /* line-height: 1.6em; */
+        }
+
+        .option-row {
+            display: flex;
+            justify-content: space-between;
+            /* width: 100%; */
+            /* margin: .2em 0; */
+        }
+
+        .labeled-input input {
+            margin-left: .15em;
+            width: 5em;
+        }
+
+        .labeled-input {
+            user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            -moz-user-select: none;
+        }
+
+        .btn {
+            display: flex;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            transition: all .3s;
+            padding: .3em .5em;
+            min-width: 3em;
+            line-height: 1em;
+            /* margin: .5em; */
+            background: hsl(207, 90%, 54%);
+            color: white;
+            /* border-radius: .3em; */
+            box-shadow: 0 0 .3em gray;
+            cursor: pointer;
+            -ms-user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transition: all .05s;
+            background: hsl(207, 90%, 61%);
+        }
+
+        .btn.btn-down {
+            cursor: default;
+        }
+
+        .btn.btn-down,
+        .btn:active {
+            transition: all .05s;
+            background: hsl(207, 90%, 70%);
+            box-shadow: 0 0 .1em gray;
+        }
+
+        .btn.dark {
+            background: hsl(207, 90%, 40%);
+        }
+
+        .btn.dark:hover {
+            background: hsl(207, 90%, 45%);
+        }
+
+        .btn.light {
+            background: hsl(207, 90%, 70%);
+        }
+
+        .btn.light:hover {
+            background: hsl(207, 90%, 80%);
+        }
+
+        .btn.disabled {
+            background: rgb(37, 78, 105);
+        }
+
+        .btn.disabled:hover {
+            background: rgb(66, 94, 112);
+        }
+
+        .btn.dangerous {
+            background: hsl(0, 100%, 61%)
+        }
+
+        .btn.btn.dangerous:hover {
+            background: hsl(0, 100%, 70%)
+        }
+    </style>
+</head>
+
+<body style="font-family: sans-serif;">
+    <div style="text-align: center;">
+        <div id="field"></div>
+    </div>
+    <div class="option-group" style="margin: 20px auto 0;">
+        <div class="option-group-title">Game Settings</div>
+        <div class="option-group-content">
+            <label class="option-row labeled-input">Height<input type="number" min="1" id="input-h" value="16"></label>
+            <label class="option-row labeled-input">Width<input type="number" min="1" id="input-w" value="16"></label>
+            <label class="option-row labeled-input">Mines<input type="number" min="1" id="input-mines" value="50"></label>
+            <div class="btn" onclick="ui_newgame()">New Game</div>
+        </div>
+    </div>
+    <script>
+
+        var GridItem = function (inner) {
+            this.outer = document.createElement('div');
+            this.inner = null;
+            this.setInner(inner);
+        };
+        GridItem.prototype.setInner = function (inner) {
+            if (this.inner) this.outer.removeChild(this.inner);
+            this.inner = inner;
+            this.outer.appendChild(inner);
+        };
+        var Grids = function (container) {
+            this.container = container;
+            var items = [];
+            var map = new Map2D();
+            var gridW = 1, gridH = 1;
+            var currentSize = { x: 0, y: 0 };
+            var layoutItem = (item) => {
+                var ele = item.outer;
+                ele.style.position = 'absolute';
+                ele.style.left = (item.x * gridW) + 'em';
+                ele.style.top = (item.y * gridH) + 'em';
+                ele.style.width = gridW + 'em';
+                ele.style.height = gridH + 'em';
+            };
+            var layoutAll = () => {
+                items.forEach(x => {
+                    layoutItem(x);
+                });
+                layoutContainer();
+            };
+            var layoutContainer = () => {
+                container.style.position = 'relative';
+                container.style.width = (currentSize.x * gridW) + 'em';
+                container.style.height = (currentSize.y * gridH) + 'em';
+            };
+            this.setGridSize = (w, h) => {
+                gridW = w; gridH = h;
+                layoutAll();
+            };
+            var add = (x, y, element) => {
+                var item = new GridItem(element);
+                item.x = x;
+                item.y = y;
+                currentSize.x = Math.max(x + 1, currentSize.x);
+                currentSize.y = Math.max(y + 1, currentSize.y);
+                items.push(item);
+                map.set(x, y, item);
+                layoutItem(item);
+                if (element) item.setInner(element);
+                container.appendChild(item.outer);
+                layoutContainer();
+            };
+            this.set = (x, y, element) => {
+                var item = map.get(x, y);
+                if (item) {
+                    item.setInner(element);
+                } else {
+                    add(x, y, element);
+                }
+            };
+            this.get = (x, y) => {
+                var item = map.get(x, y);
+                if (item) return item.inner;
+            };
+            this.clear = () => {
+                items = [];
+                map = new Map2D();
+                currentSize.x = 0;
+                currentSize.y = 0;
+                container.innerHTML = '';
+                layoutContainer();
+            };
+        };
+
+        var Map2D = function () {
+            this.map = [];
+        };
+        Map2D.prototype.set = function (x, y, val) {
+            let arrx = this.map[x];
+            if (!arrx) arrx = this.map[x] = [];
+            arrx[y] = val;
+        };
+        Map2D.prototype.get = function (x, y) {
+            let arrx = this.map[x];
+            if (arrx) return arrx[y];
+            return undefined;
+        };
+        Map2D.prototype.forEach = function (callback) {
+            this.map.forEach(x => x.forEach(callback));
+        };
+
+        var GameMapItem = function (map, x, y) {
+            this._map = map;
+            this.x = x; this.y = y;
+            this.mine = false;
+        };
+        Object.defineProperty(GameMapItem.prototype, 'state', {
+            get: function () { return this._state; },
+            set: function (val) {
+                var old = this._state;
+                if (old !== undefined) this._map._counterAdd(old, -1);
+                this._state = val;
+                if (val !== undefined) this._map._counterAdd(val, 1);
+            }
+        });
+        Object.defineProperty(GameMapItem.prototype, 'knownMine', {
+            get: function () { return this._state == 2 || (this._state == 1 && this.mine); }
+        });
+
+        var GameMap = function (w, h) {
+            this.w = w;
+            this.h = h;
+            this.map = new Map2D();
+            this.array = [];
+            this.hasMines = false;
+            this._counters = {};
+
+            for (let x = 0; x < w; x++) {
+                for (let y = 0; y < h; y++) {
+                    let item = new GameMapItem(this, x, y);
+                    item.state = 0;
+                    this.array.push(item);
+                    this.map.set(x, y, item);
+                }
+            }
+        };
+        GameMap.prototype._counterAdd = function (counter, val) {
+            this._counters[counter] = (this._counters[counter] || 0) + val;
+        };
+        GameMap.prototype.forEach = function (callback) {
+            this.array.forEach(callback);
+        };
+        GameMap.prototype.forNeighbors = function (item, callback) {
+            var map = this.map;
+            var n;
+            var x = item.x, y = item.y;
+            if (n = map.get(x - 1, y - 1)) callback(n);
+            if (n = map.get(x - 1, y)) callback(n);
+            if (n = map.get(x - 1, y + 1)) callback(n);
+            if (n = map.get(x, y - 1)) callback(n);
+            if (n = map.get(x, y + 1)) callback(n);
+            if (n = map.get(x + 1, y - 1)) callback(n);
+            if (n = map.get(x + 1, y)) callback(n);
+            if (n = map.get(x + 1, y + 1)) callback(n);
+        };
+        GameMap.prototype.putMines = function (count, exclude) {
+            if (this.hasMines) throw new Error('already has mines');
+            this.hasMines = true;
+            var array = this.array;
+            while (count > 0) {
+                let i = Math.floor(Math.random() * array.length);
+                let item = array[i];
+                if (!item.mine
+                    && (Math.abs(exclude.x - item.x) > 1
+                        || Math.abs(exclude.y - item.y) > 1)) {
+                    item.mine = true;
+                    count--;
+                }
+            }
+            for (const item of array) {
+                let mines = 0;
+                if (item.mine) {
+                    mines = -1;
+                } else {
+                    this.forNeighbors(item, x => {
+                        if (x.mine) mines++;
+                    });
+                }
+                item.number = mines;
+            }
+        };
+
+        var byId = (id) => document.getElementById(id);
+
+        var Game = function () {
+            var createElement = (tag, className) => {
+                var ele = document.createElement(tag);
+                ele.className = className;
+                return ele;
+            };
+            var field = new Grids(byId('field'));
+            var map = null;
+            var curOptions;
+            var genMap = (w, h) => {
+                map = new GameMap(w, h);
+                field.clear();
+                map.forEach(item => {
+                    let { x, y } = item;
+                    let ele = createElement('div', ((y + x) % 2) ? 'grid' : 'grid grid-2');
+                    ele.onclick = (e) => onClick(item, 'left');
+                    ele.oncontextmenu = (e) => {
+                        e.preventDefault();
+                    };
+                    let rightDown = false;
+                    ele.onmousedown = (e) => {
+                        if (e.which == 3) rightDown = true;
+                    };
+                    ele.onmouseout = (e) => {
+                        rightDown = false;
+                    };
+                    ele.onmouseup = (e) => {
+                        if (e.which == 3 && rightDown) {
+                            onClick(item, 'right');
+                        }
+                    };
+
+                    field.set(x, y, ele);
+                });
+            };
+            var getView = (item) => field.get(item.x, item.y);
+            var onClick = (item, btn) => {
+                console.log('click(' + btn + ') on ', item);
+                if (btn == 'right') {
+                    flagGrid(item);
+                } else {
+                    openGrid(item);
+                }
+            };
+            var openGrid = (item) => {
+                if (item.state) return;
+                if (!map.hasMines) {
+                    map.putMines(curOptions.mines, item);
+                }
+                item.state = 1;
+                var view = getView(item);
+                view.classList.add('open');
+                if (item.mine) {
+                    view.classList.add('mine');
+                } else if (item.number) {
+                    view.textContent = item.number;
+                    view.classList.add('num-' + item.number);
+                } else {
+                    map.forNeighbors(item, openGrid);
+                }
+                // startAuto();
+            };
+            var flagGrid = (item) => {
+                var view = getView(item);
+                if (item.state == 2) {
+                    view.classList.remove('flag');
+                    item.state = 0;
+                } else if (item.state == 0) {
+                    view.classList.add('flag');
+                    item.state = 2;
+                } else if (item.state == 1 && !item.mine && item.number) {
+                    autoGrid(item);
+                }
+            };
+            var autoGrid = (item, onopen, onflag) => {
+                let covered = 0, flaged = 0;
+                onopen = onopen || openGrid;
+                onflag = onflag || flagGrid;
+                map.forNeighbors(item, x => {
+                    if (x.knownMine) flaged++;
+                    if (x.state == 0 || x.state == 2 || (x.state == 1 && x.mine)) covered++;
+                });
+                if (flaged == item.number) {
+                    let opened = 0;
+                    map.forNeighbors(item, x => {
+                        if (x.state == 0) { openGrid(x); opened++; }
+                    });
+                    return opened;
+                } else if (covered == item.number) {
+                    let flaged = 0;
+                    map.forNeighbors(item, x => {
+                        if (x.state == 0) { flagGrid(x); flaged++; }
+                    });
+                    return -flaged;
+                }
+                return 0;
+            }
+            field.setGridSize(1, 1);
+            this.newGame = function (options) {
+                curOptions = options;
+                genMap(options.width, options.height);
+            };
+            var startAuto = function () {
+                if (autoTimer !== null) return;
+                autoTimer = setTimeout(auto, 100);
+            };
+            this.startAuto = startAuto;
+            let autoTimer = null;
+            var auto = function () {
+                autoTimer = null;
+                console.log('auto...');
+                let changed = false;
+                map.forEach(item => {
+                    if (item.state == 1 && autoGrid(item) != 0) {
+                        startAuto();
+                    }
+                });
+            };
+            console.log(map);
+        };
+
+        var game = new Game();
+        // game.newGame({ width: 16, height: 16, mines: 16 * 16 * 0.2 });
+
+        function ui_newgame() {
+            game.newGame({
+                width: byId('input-w').value,
+                height: byId('input-h').value,
+                mines: byId('input-mines').value
+            });
+        }
+        ui_newgame();
+
+        document.addEventListener('keypress', (e) => {
+            if (e.key == 'a') {
+                game.startAuto();
+            }
+        });
+    </script>
+</body>
+
+</html>

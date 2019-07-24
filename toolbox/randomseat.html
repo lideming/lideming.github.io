@@ -231,21 +231,6 @@
             /* line-height: 1.6em; */
         }
 
-        .option-group-content-2 {
-            width: 20em;
-            display: flex;
-            position: relative;
-            flex: 1;
-            flex-wrap: wrap;
-            justify-content: space-between;
-        }
-
-        .option-group-content-2>* {
-            min-width: calc(50% - .3em);
-            flex: 1;
-            margin: .15em;
-        }
-
         .option-row {
             display: flex;
             justify-content: space-between;
@@ -443,7 +428,8 @@
                 toggleTextUpdate();
             };
         })();
-        // i18n.setLang('en');
+        var langs = ['en', 'zh'];
+        // Not including 'ja' for now.
 
         var RDSeat = function (container) {
             var RNG = function () {
@@ -1009,8 +995,7 @@
         });
 
         function switchLang(newLang) {
-            siLang.loop(['en', 'zh']);
-            // Not including 'ja' for now.
+            siLang.loop(langs);
         }
 
         var siLang = new SettingItem('lang', 'str', 'en').render(function (lang) {
@@ -1045,28 +1030,28 @@
         };
 
         var siFullscreen = new SettingItem(null, 'bool', isFullScreen())
-        .bindToBtn(document.getElementById('fullscreen'))
-        .render(function (fs) {
-            toggleFullScreen(fs);
-        }, true);
+            .bindToBtn(document.getElementById('fullscreen'))
+            .render(function (fs) {
+                toggleFullScreen(fs);
+            }, true);
 
         var siDarkTheme = new SettingItem('darkTheme', 'bool', false)
-        .bindToBtn(document.getElementById('darkTheme'))
-        .render(function (val) {
-            document.body.classList.toggle('dark', val);
-        });
+            .bindToBtn(document.getElementById('darkTheme'))
+            .render(function (val) {
+                document.body.classList.toggle('dark', val);
+            });
 
         var siSoundFX = new SettingItem('rs-soundFx', 'bool', app.playSoundFX)
-        .bindToBtn(document.getElementById('soundFx'))
-        .render(function (val) {
-            app.playSoundFX = val;
-        });
+            .bindToBtn(document.getElementById('soundFx'))
+            .render(function (val) {
+                app.playSoundFX = val;
+            });
 
         var siSoundFX = new SettingItem('rs-scarier', 'bool', app.scarier)
-        .bindToBtn(document.getElementById('scarier'))
-        .render(function (val) {
-            app.scarier = val;
-        });
+            .bindToBtn(document.getElementById('scarier'))
+            .render(function (val) {
+                app.scarier = val;
+            });
 
         tryResume() || quicksetting();
 
