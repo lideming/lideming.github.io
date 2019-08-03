@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="height: 100%;">
 
 <head>
     <meta charset="UTF-8">
@@ -7,16 +7,57 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Minesweeper</title>
     <style>
+        .header,
+        .header-holder {
+            height: 64px;
+        }
+
+        .header {
+            top: 0;
+            left: 0;
+            right: 0;
+            position: fixed;
+            z-index: 100;
+            box-shadow: 0 0 6px #666;
+            background: #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header .btn {
+            height: 20px;
+            margin: 0 20px;
+        }
+
+        .header-title {
+            margin: 0 20px;
+            font-size: 24px;
+            line-height: 64px;
+            display: inline;
+        }
+
+        #game-viewport {
+            flex: 1;
+            display: flex;
+            /* justify-content: center;
+            align-items: center; */
+            overflow: auto;
+        }
+
+        #field-outer {
+            margin: auto;
+            padding: 10px;
+        }
+
         #field {
-            margin: .2em;
             font-size: 24px;
             box-shadow: gray 0 0 .5em;
-            display: inline-block;
         }
 
         .grid {
             background: #1565c0;
-            /* transition: background .2s; */
+            transition: background .2s;
             width: 100%;
             height: 100%;
             line-height: 2em;
@@ -51,10 +92,29 @@
             background: #b71c1c;
         }
 
-        .grid.flag::after {
-            content: 'O';
+        .grid.mine::after {
+            content: '🔥';
             font-weight: bold;
             color: #ef5350;
+        }
+
+        .grid.flag::after {
+            content: '🚩';
+            font-weight: bold;
+            color: #ef5350;
+        }
+
+        #settings-overlay {
+            position: fixed;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 200;
+            background: rgba(255, 255, 255, .8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .option-group {
@@ -184,17 +244,27 @@
     </style>
 </head>
 
-<body style="font-family: sans-serif;">
-    <div style="text-align: center;">
-        <div id="field"></div>
+<body style="font-family: sans-serif; display: flex; flex-direction: column; height: 100%; margin: 0;">
+    <div class="header">
+        <h1 class="header-title">Minesweeper</h1>
+        <span id="header-stat"></span>
+        <div class="btn" id="header-newgame">New Game</div>
     </div>
-    <div class="option-group" style="margin: 20px auto 0;">
-        <div class="option-group-title">Game Settings</div>
-        <div class="option-group-content">
-            <label class="option-row labeled-input">Height<input type="number" min="1" id="input-h" value="16"></label>
-            <label class="option-row labeled-input">Width<input type="number" min="1" id="input-w" value="16"></label>
-            <label class="option-row labeled-input">Mines<input type="number" min="1" id="input-mines" value="50"></label>
-            <div class="btn" onclick="ui_newgame()">New Game</div>
+    <div class="header-holder"></div>
+    <div id="game-viewport" style="text-align: center; flex: 1;">
+        <div id="field-outer">
+            <div id="field"></div>
+        </div>
+    </div>
+    <div id="settings-overlay" style="display: none;" onclick="(event.target == this) && (this.style.display = 'none')">
+        <div class="option-group" style="margin: 20px auto 0;">
+            <div class="option-group-title">Game Settings</div>
+            <div class="option-group-content">
+                <label class="option-row labeled-input">Height<input type="number" min="1" id="input-h" value="16"></label>
+                <label class="option-row labeled-input">Width<input type="number" min="1" id="input-w" value="16"></label>
+                <label class="option-row labeled-input">Mines<input type="number" min="1" id="input-mines" value="50"></label>
+                <div class="btn" onclick="ui_newgame()">New Game</div>
+            </div>
         </div>
     </div>
     <script>
@@ -305,7 +375,7 @@
             }
         });
         Object.defineProperty(GameMapItem.prototype, 'knownMine', {
-            get: function () { return this._state == 2 || (this._state == 1 && this.mine); }
+            get: function () { return this._state == 2 || this._state == 3; }
         });
 
         var GameMap = function (w, h) {
@@ -370,6 +440,13 @@
                 item.number = mines;
             }
         };
+        GameMap.prototype.getCounters = function () {
+            return {
+                opened: this._counters[1] || 0,
+                flag: this._counters[2] || 0,
+                openedmine: this._counters[3] || 0,
+            };
+        };
 
         var byId = (id) => document.getElementById(id);
 
@@ -382,6 +459,7 @@
             var field = new Grids(byId('field'));
             var map = null;
             var curOptions;
+            Object.defineProperty(this, 'options', { get: () => curOptions });
             var genMap = (w, h) => {
                 map = new GameMap(w, h);
                 field.clear();
@@ -426,6 +504,7 @@
                 var view = getView(item);
                 view.classList.add('open');
                 if (item.mine) {
+                    item.state = 3;
                     view.classList.add('mine');
                 } else if (item.number) {
                     view.textContent = item.number;
@@ -433,6 +512,7 @@
                 } else {
                     map.forNeighbors(item, openGrid);
                 }
+                stateChanged();
                 // startAuto();
             };
             var flagGrid = (item) => {
@@ -443,9 +523,10 @@
                 } else if (item.state == 0) {
                     view.classList.add('flag');
                     item.state = 2;
-                } else if (item.state == 1 && !item.mine && item.number) {
+                } else if (item.state == 1 && item.number) {
                     autoGrid(item);
                 }
+                stateChanged();
             };
             var autoGrid = (item, onopen, onflag) => {
                 let covered = 0, flaged = 0;
@@ -453,7 +534,7 @@
                 onflag = onflag || flagGrid;
                 map.forNeighbors(item, x => {
                     if (x.knownMine) flaged++;
-                    if (x.state == 0 || x.state == 2 || (x.state == 1 && x.mine)) covered++;
+                    if (x.state == 0 || x.state == 2 || x.state == 3) covered++;
                 });
                 if (flaged == item.number) {
                     let opened = 0;
@@ -472,14 +553,21 @@
             }
             field.setGridSize(1, 1);
             this.newGame = function (options) {
+                options.mines = Math.min(options.width * options.height - 9, options.mines);
                 curOptions = options;
                 genMap(options.width, options.height);
+                stateChanged();
             };
             var startAuto = function () {
                 if (autoTimer !== null) return;
                 autoTimer = setTimeout(auto, 100);
             };
             this.startAuto = startAuto;
+            this.onStateChanged = null;
+            this.getCounters = () => map.getCounters();
+            var stateChanged = () => {
+                this.onStateChanged && this.onStateChanged();
+            }
             let autoTimer = null;
             var auto = function () {
                 autoTimer = null;
@@ -495,7 +583,18 @@
         };
 
         var game = new Game();
+        game.onStateChanged = function () {
+            var ctr = game.getCounters();
+            var str = '🚩' + ctr.flag;
+            if (ctr.openedmine) str += ' + 🔥' + ctr.openedmine;
+            str += ' / 💣' + game.options.mines
+            byId('header-stat').textContent = str;
+        };
         // game.newGame({ width: 16, height: 16, mines: 16 * 16 * 0.2 });
+
+        function hideSettings(hide) {
+            byId('settings-overlay').style.display = hide ? 'none' : null;
+        }
 
         function ui_newgame() {
             game.newGame({
@@ -503,7 +602,13 @@
                 height: byId('input-h').value,
                 mines: byId('input-mines').value
             });
+            hideSettings(true);
         }
+
+        byId('header-newgame').onclick = (e) => {
+            hideSettings(false);
+        };
+
         ui_newgame();
 
         document.addEventListener('keypress', (e) => {
@@ -512,6 +617,7 @@
             }
         });
     </script>
+    <script async defer onload="sw.check(true)" src="/serviceWorker.js"></script>
 </body>
 
 </html>
