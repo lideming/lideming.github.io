@@ -1,0 +1,147 @@
+/* styles for blog posts */
+
+body {
+    margin: 0 auto;
+    background: #fafafa;
+    color: #232323;
+    font-family: sans-serif;
+}
+
+body.dark {
+    background: black;
+    color: #ddd;
+}
+
+h1,
+h2 {
+    margin: 0;
+    padding: .5em 0;
+}
+
+.title {
+    text-align: center;
+}
+
+del {
+    color: #777777;
+}
+
+p,
+.plike,
+ul,
+li,
+.code {
+    margin: 1em 0;
+}
+
+a {
+    color: #1976d2;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #90beff;
+}
+
+.date {
+    margin-top: 0;
+    text-align: center;
+    color: #777777;
+}
+
+.date::before {
+    content: "Date: ";
+}
+
+.content {
+    padding: 0 8px;
+    margin: 0 auto;
+    max-width: 800px;
+}
+
+code, .code {
+    white-space: pre;
+    background: #e3e3e3;
+    font-family: 'Consolas', 'Courier New', Courier, monospace;
+    padding: 0 .3em;
+}
+
+.code {
+    padding: .5em;
+    overflow-x: auto;
+}
+
+.dark code, .dark .code {
+    background: #333;
+}
+
+.extlink {
+    background: url('../img/external-link.svg') center right no-repeat;
+    background-size: 1em;
+    padding-right: 1em;
+}
+
+.btn {
+    display: inline-block;
+    vertical-align: baseline;
+    text-align: center;
+    transition: all .3s;
+    padding: 0 .4em;
+    min-width: 3em;
+    line-height: 1.5em;
+    background: hsl(207, 90%, 54%);
+    color: white;
+    box-shadow: 0 0 .3em gray;
+    cursor: pointer;
+    -ms-user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:hover {
+    transition: all .05s;
+    background: hsl(207, 90%, 61%);
+}
+
+.btn.btn-down,
+.btn:active {
+    transition: all .05s;
+    background: hsl(207, 90%, 70%);
+    box-shadow: 0 0 .1em gray;
+}
+
+.header {
+    background: #1976d2;
+    color: white;
+    line-height: 1.5em;
+}
+
+.header a {
+    color: white;
+}
+
+.header a:hover {
+    color: #89baff;
+}
+
+.header a::after {
+    content: "Blog - Yet A Public Toolbox";
+}
+
+.header-inner {
+    display: block;
+    padding: .5em 1em;
+    margin: 0 auto;
+    max-width: 800px;
+}
+
+#darkTheme {
+    float: right;
+}
+
+#darkTheme::after {
+    content: "Dark";
+}

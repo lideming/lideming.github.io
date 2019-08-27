@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Blog Test</title>
+</head>
+<body>
+    <div class="content">
+        <h1 class="title">Blog Test</h1>
+        <p class="date">2019-08-28</p>
+        <p>This is a blog test.</p>
+        <p>The blog theme is rendered by frontend JavaScript. There is no server-side script.</p>
+        <p>The frontend script inserts header and styles into already "loaded" page, so please close your eyes before the script runs.</p>
+        <pre class="code">
+/* This is a code block */
+code, .code {
+    white-space: pre;
+    background: #ddd;
+    font-family: 'Consolas', 'Courier New', Courier, monospace;
+    padding: 0 .3em;
+}
+</pre>
+        <p>This is a paragraph with
+            <br>a line break, <del>deleted text</del> and <code>inline code</code>.</p>
+    </div>
+    <script async defer onload="sw.blog()" src="../serviceWorker.js"></script>
+</body>
+</html>

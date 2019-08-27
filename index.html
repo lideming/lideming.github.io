@@ -60,7 +60,7 @@
         }
 
         del {
-            opacity: .5;
+            color: #777777;
         }
 
         summary {
@@ -167,6 +167,12 @@
             </details>
         </div>
         <div class="block">
+            <h2>Blogs</h2>
+            <ul>
+                <li><a href="blog/blogtest.html">Blog Test</a></li>
+            </ul>
+        </div>
+        <div class="block">
             <h2>Tools</h2>
             <ul>
                 <li><a class="open-popup" href="toolbox/countdown.html">Countdown Timer</a></li>
@@ -267,7 +273,7 @@
             });
         };
 
-        (function () {
+        window.SettingItem = (function () {
             var SettingItem = function (key, type, initial) {
                 this.key = key;
                 this.type = typeof type == 'string' ? SettingItem.types[type] : type;
@@ -319,7 +325,7 @@
                     deserilize: function (x) { return x; }
                 }
             };
-            window.SettingItem = SettingItem;
+            return SettingItem;
         })();
 
         var siDarkTheme = new SettingItem('darkTheme', 'bool', false)
