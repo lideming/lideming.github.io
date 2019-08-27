@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
-            max-width: 50em;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 8px;
             padding-bottom: 0;
@@ -125,59 +125,83 @@
             background: hsl(207, 90%, 70%);
             box-shadow: 0 0 .1em gray;
         }
+
+        .resp-left, .resp-right {
+            width: 100%;
+            float: left;
+        }
+
+        @media only screen and (min-width: 992px) {
+            .block {
+                margin: 1em;
+            }
+            .resp-left {
+                width: 67%;
+            }
+            .resp-right {
+                width: 33%;
+                margin-top: 7em;
+            }
+        }
     </style>
 </head>
 
 <body>
-    <div class="block">
-        <h1 style="text-align: center; margin: 0;">Yet A Public Toolbox</h1>
-        <p>Hi, welcome to my 'toolbox'.</p>
-        <details>
-            <summary>More info</summary>
-            <p><del>I know. This frontpage is so ugly.
-                    <br>(UPDATE: now it's a little better, just a little.)
-                    <br>(UPDATE2: color scheme is updated.)</del>
-                <br>(UPDATE3: a little Material Design.)</p>
-            <p>But it's really a <a class="extlink" href="https://motherfuckingwebsite.com/">Moth*****king Website</a>.
-                <br>It loads really fast, and functions well on both your PC and mobile phone. <del>It even works on
-                    old browsers (e.g. IE6).</del>
-            </p>
-            <p>I am not going to write any fancy code to make it "looks like a modern website".</p>
-            <p>Just kidding, it's just under construction. I did write such code.</p>
-        </details>
+    <div class="resp-left">
+        <div class="block">
+            <h1 style="text-align: center; margin: 0;">Yet A Public Toolbox</h1>
+            <p>Hi, welcome to my 'toolbox'.</p>
+            <details>
+                <summary>More info</summary>
+                <p><del>I know. This frontpage is so ugly.
+                        <br>(UPDATE: now it's a little better, just a little.)
+                        <br>(UPDATE2: color scheme is updated.)</del>
+                    <br>(UPDATE3: a little Material Design.)</p>
+                <p>But it's really a <a class="extlink" href="https://motherfuckingwebsite.com/">Moth*****king Website</a>.
+                    <br>It loads really fast, and functions well on both your PC and mobile phone. <del>It even works on
+                        old browsers (e.g. IE6).</del>
+                    <br>(UPDATE: now it doesn't fully work on old browsers.)
+                </p>
+                <p>I am not going to write any fancy code to make it "looks like a modern website".</p>
+                <p>Just kidding, it's just under construction. I did write such code.</p>
+            </details>
+        </div>
+        <div class="block">
+            <h2>Tools</h2>
+            <ul>
+                <li><a class="open-popup" href="toolbox/countdown.html">Countdown Timer</a></li>
+                <li><a class="open-popup" href="toolbox/rng.html">Random Number Generator</a></li>
+                <li><a class="open-popup" href="toolbox/randomseat.html">Random Seat Selector</a></li>
+            </ul>
+            <p>Click on "popup" buttons to try open as a popup. It may not work as expected, depends on your browser.</p>
+            <p>More tools may be added in the future!</p>
+        </div>
+        <div class="block">
+            <h2>Games</h2>
+            <ul>
+                <li><a class="open-popup" href="toolbox/minesweeper.html">Minesweeper</a></li>
+            </ul>
+        </div>
     </div>
-    <div class="block">
-        <h2>Tools</h2>
-        <ul>
-            <li><a class="open-popup" href="toolbox/countdown.html">Countdown Timer</a></li>
-            <li><a class="open-popup" href="toolbox/rng.html">Random Number Generator</a></li>
-            <li><a class="open-popup" href="toolbox/randomseat.html">Random Seat Selector</a></li>
-        </ul>
-        <p>Click on "popup" buttons to try open as a popup. It may not work as expected, depends on your browser.</p>
-        <p>More tools may be added in the future!</p>
+    <div class="resp-right">
+        <div class="block">
+            <h2>Service Worker</h2>
+            <p><a class="extlink" href="https://developers.google.com/web/fundamentals/primers/service-workers/">Service worker</a>
+                can help this site working offline and loading freakin' fast.</p>
+            <p><span id="sw-text">Current state: <span id="sw-state">(checking...)</span>.</span></p>
+            <div class="plike" id="sw-btn-p" hidden><div class="btn" id="sw-btn" onclick="serviceWorker()"></div></div>
+        </div>
+        <div class="block">
+            <h2>Settings</h2>
+            <p>The title is "setting<b>s</b>", even there's only one setting item for now.</p>
+            <p>These settings may affect other pages on this site.</p>
+            <div class="plike"><div class="btn" id="darkTheme">Dark Theme</div></div>
+        </div>
+        <small>
+            <p style="text-align: right;"><a href="https://github.com/lideming/lideming.github.io">Hosted on Github</a></p>
+        </small>
     </div>
-    <div class="block">
-        <h2>Games</h2>
-        <ul>
-            <li><a class="open-popup" href="toolbox/minesweeper.html">Minesweeper</a></li>
-        </ul>
-    </div>
-    <div class="block">
-        <h2>Service Worker</h2>
-        <p><a class="extlink" href="https://developers.google.com/web/fundamentals/primers/service-workers/">Service worker</a>
-            can help this site working offline and loading freakin' fast.</p>
-        <p><span id="sw-text">Current state: <span id="sw-state">(checking...)</span>.</span></p>
-        <div class="plike" id="sw-btn-p" hidden><div class="btn" id="sw-btn" onclick="serviceWorker()"></div></div>
-    </div>
-    <div class="block">
-        <h2>Settings</h2>
-        <p>The title is "setting<b>s</b>", even there's only one setting item for now.</p>
-        <p>"These settings" may affect other pages on this site.</p>
-        <div class="plike"><div class="btn" id="darkTheme">Dark Theme</div></div>
-    </div>
-    <small>
-        <p style="text-align: right;"><a href="https://github.com/lideming/lideming.github.io">Hosted on Github</a></p>
-    </small>
+    <div style="clear: both;"></div>
 
     <script>
         if (window.Node) {
