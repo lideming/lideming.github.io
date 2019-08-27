@@ -837,55 +837,61 @@
         };
         var app = new RDSeat(document.getElementById('seats'));
 
-        var SettingItem = function (key, type, initial) {
-            this.key = key;
-            this.type = typeof type == 'string' ? SettingItem.types[type] : type;
-            var str = key ? localStorage.getItem(key) : null;
-            this.set(str ? this.type.deserilize(str) : initial, true);
-        };
-        SettingItem.prototype.render = function (fn, dontRaiseNow) {
-            if (!dontRaiseNow) fn(this.data);
-            var oldFn = this.onRender;
-            var newFn = fn;
-            if (oldFn) fn = function (x) { oldFn(x); newFn(x); };
-            this.onRender = fn;
-            return this;
-        };
-        SettingItem.prototype.bindToBtn = function (btn) {
-            if (this.type != SettingItem.types.bool) throw new Error('only for bool type');
-            var span = document.createElement('span');
-            btn.insertBefore(span, btn.firstChild);
-            this.render(function (x) {
-                btn.classList.toggle('disabled', !x);
-                span.textContent = x ? "✅" : "❌";
-            });
-            btn.addEventListener('click', e => this.toggle());
-            return this;
-        };
-        SettingItem.prototype.set = function (data, dontSave) {
-            this.data = data;
-            this.onRender && this.onRender(data);
-            if (!dontSave && this.key) localStorage.setItem(this.key, this.type.serialize(data));
-        };
-        SettingItem.prototype.toggle = function () {
-            if (this.type != SettingItem.types.bool) throw new Error('only for bool type');
-            this.set(!this.data);
-        };
-        SettingItem.prototype.loop = function (arr) {
-            var oldIndex = arr.findIndex(x => x == this.data);
-            var newData = arr[(oldIndex + 1) % arr.length];
-            this.set(newData);
-        };
-        SettingItem.types = {
-            bool: {
-                serialize: function (data) { return data ? 'true' : 'false'; },
-                deserilize: function (str) { return str == 'true' ? true : str == 'false' ? false : undefined; }
-            },
-            str: {
-                serialize: function (x) { return x; },
-                deserilize: function (x) { return x; }
-            }
-        };
+        window.SettingItem = (function () {
+            var SettingItem = function (key, type, initial) {
+                this.key = key;
+                this.type = typeof type == 'string' ? SettingItem.types[type] : type;
+                var str = key ? localStorage.getItem(key) : null;
+                this.set(str ? this.type.deserilize(str) : initial, true);
+            };
+            SettingItem.prototype.render = function (fn, dontRaiseNow) {
+                if (!dontRaiseNow) fn(this.data);
+                var oldFn = this.onRender;
+                var newFn = fn;
+                if (oldFn) fn = function (x) { oldFn(x); newFn(x); };
+                this.onRender = fn;
+                return this;
+            };
+            SettingItem.prototype.bindToBtn = function (btn, prefix) {
+                if (this.type != SettingItem.types.bool) throw new Error('only for bool type');
+                var span = document.createElement('span');
+                btn.insertBefore(span, btn.firstChild);
+                this.render(function (x) {
+                    btn.classList.toggle('disabled', !x);
+                    prefix = prefix || ["❌", "✅"]
+                    span.textContent = prefix[+x];
+                });
+                var thiz = this;
+                btn.addEventListener('click', function () { thiz.toggle(); });
+                return this;
+            };
+            SettingItem.prototype.set = function (data, dontSave) {
+                this.data = data;
+                this.onRender && this.onRender(data);
+                if (!dontSave && this.key) localStorage.setItem(this.key, this.type.serialize(data));
+            };
+            SettingItem.prototype.toggle = function () {
+                if (this.type != SettingItem.types.bool) throw new Error('only for bool type');
+                this.set(!this.data);
+            };
+            SettingItem.prototype.loop = function (arr) {
+                var curData = this.data;
+                var oldIndex = arr.findIndex(function (x) { return x == curData; });
+                var newData = arr[(oldIndex + 1) % arr.length];
+                this.set(newData);
+            };
+            SettingItem.types = {
+                bool: {
+                    serialize: function (data) { return data ? 'true' : 'false'; },
+                    deserilize: function (str) { return str == 'true' ? true : str == 'false' ? false : undefined; }
+                },
+                str: {
+                    serialize: function (x) { return x; },
+                    deserilize: function (x) { return x; }
+                }
+            };
+            return SettingItem;
+        })();
 
         function quicksetting() {
             var h = document.getElementById('seatinput-h').value;
@@ -1036,7 +1042,7 @@
             }, true);
 
         var siDarkTheme = new SettingItem('darkTheme', 'bool', false)
-            .bindToBtn(document.getElementById('darkTheme'))
+            .bindToBtn(document.getElementById('darkTheme'), ['🔆', '🌙'])
             .render(function (val) {
                 document.body.classList.toggle('dark', val);
             });

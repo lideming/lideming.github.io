@@ -196,13 +196,14 @@
                 this.onRender = fn;
                 return this;
             };
-            SettingItem.prototype.bindToBtn = function (btn) {
+            SettingItem.prototype.bindToBtn = function (btn, prefix) {
                 if (this.type != SettingItem.types.bool) throw new Error('only for bool type');
                 var span = document.createElement('span');
                 btn.insertBefore(span, btn.firstChild);
                 this.render(function (x) {
                     btn.classList.toggle('disabled', !x);
-                    span.textContent = x ? "✅" : "❌";
+                    prefix = prefix || ["❌","✅"]
+                    span.textContent = prefix[+x];
                 });
                 var thiz = this;
                 btn.addEventListener('click', function () { thiz.toggle(); });
@@ -237,7 +238,7 @@
         })();
         
         var siDarkTheme = new SI('darkTheme', 'bool', false)
-        .bindToBtn(btnDark)
+        .bindToBtn(btnDark, ['🔆', '🌙'])
         .render(function (val) {
             document.body.classList.toggle('dark', val);
         });
