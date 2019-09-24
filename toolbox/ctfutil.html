@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Simple CTF Playground</title>
+</head>
+
+<body>
+    <h1>F12 please.</h1>
+    <script>
+        if (navigator.userAgent.match(/Android|iOS/)) {
+            document.write("<h2>Mobile phones are not supported.</h2>");
+            document.write("<p>Your current User-Agent is: <code id='ua'></code></p>");
+            window.addEventListener('load', function () {
+                document.getElementById('ua').textContent = navigator.userAgent;
+            });
+        }
+    </script>
+    <div>
+        <div>
+            Image file: <input type="file" id="img_file" onchange="img_selected()">
+        </div>
+        <div>
+            <img id="img" src="" alt="">
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+    <script>
+        function forrange(begin, len, cb) {
+            for (var i = 0; i < len; i++) {
+                cb(begin + i);
+            }
+        }
+
+        function forch(str, callback) {
+            var result = '';
+            var charcode = 0;
+
+            for (var i = 0; i < str.length; i++) {
+                var charcode = callback(str.charCodeAt(i), i);
+                result += String.fromCharCode(charcode);
+            }
+            return result;
+        }
+
+        function strshift(str, num) {
+            if (num === undefined) num = [-30, 30];
+            if (num instanceof Array) {
+                var r = {};
+                forrange(num[0], num[1] - num[0], x => r[x] = strshift(str, x));
+                return r;
+            }
+            return forch(str, x => x + num);
+        }
+
+        function strxor(a, b) {
+            return forch(a, (x, i) => x ^ b.charCodeAt(i));
+        }
+
+        var img_file = document.getElementById('img_file');
+        var img = document.getElementById('img');
+        var canvas = document.getElementById('canvas');
+        var canctx = canvas.getContext('2d');
+
+        function img_selected() {
+            var file = img_file.files[0];
+            var reader = new FileReader();
+
+            reader.onload = function (e) {
+                img.src = e.target.result;
+                // then img.onload should be called.
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        img.onload = function (e) {
+            canctx.beginPath();
+            canvas.height = img.height;
+            canvas.width = img.width;
+            canctx.drawImage(img, 0, 0);
+            img.hidden = true;
+        };
+
+        function getImageData() {
+            return canctx.getImageData(0, 0, canvas.height, canvas.width);
+        }
+
+        function LsbReader(data) {
+            console.log('lsbreader: ', this);
+            console.log('lsbdata: ', data);
+            this.data = data;
+            this.origpos = 0;
+            this.readbit = () => {
+                if (this.origpos % 4 == 3) this.origpos++; // skip alapa byte
+                var pos = this.origpos++;
+                var r = this.data[pos] & 1; // get the last bit
+                return r;
+            };
+        }
+
+        function lsb_rgb_1bit(len) {
+            len = len || 32;
+            var data = getImageData().data;
+            var arr = new Uint8Array(len);
+            var pos = 0;
+            var lr = new LsbReader(data);
+            for (var i = 0; i < len; i++) {
+                var byte = 0;
+                forrange(0, 8, shl => byte |= (lr.readbit() << (7 - shl)));
+                arr[i] = byte;
+            }
+            return arr;
+        }
+
+        function strdecode(buf) {
+            var r = '';
+            for (var i = 0; i < buf.length; i++) {
+                r += String.fromCharCode(buf[i]);
+            }
+            return r;
+        }
+
+        if (img_file.files.length) img_selected();
+
+        console.log('and open source file please. (no docs)');
+
+    </script>
+</body>
+
+</html>
