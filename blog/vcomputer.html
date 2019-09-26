@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Vcomputer</title>
+</head>
+
+<body>
+	<div class="content">
+		<h1 class="title">Vcomputer</h1>
+		<p class="date">2019-09-26</p>
+		<div lang="zh">
+			<p>前几天上了第一节计算机科学导论课，使用的教材是<a class="extlink" href="https://book.douban.com/subject/26779097/">《计算机科学导论——思想与方法》</a>，书中给出了“一个取名为 Vcomputer 的基于冯·诺伊曼的计算机器”。</p>
+			<p>感觉这个机器简单又有趣，于是想用 Web 前端技术实现一个 Vcomputer 虚拟机。</p>
+
+			<h2>基本结构</h2>
+			<p>这个机器有 16 个通用寄存器（每个 8 位）、一个程序计数器、一个指令寄存器以及一块容量“高达” 256 字节的主内存。</p>
+
+			<h2>指令集</h2>
+			<p>这个机器的指令是固定长度的，每条指令 2 字节（16 位），前 4 位为操作码，后 12 位为操作数（其中包含一个或两个参数）。</p>
+			<p>下面列出这个机器的指令集：</p>
+			<p>第一列是用 <ruby>HEX<rp>(</rp><rt>十六进制</rt><rp>)</rp></ruby> 表示的指令格式，1 位 HEX 
+				恰好对应 4 位 <ruby>BIN<rp>(</rp><rt>二进制</rt><rp>)</rp></ruby>，因此每条指令可用 4 位 HEX 表示；
+				<br/>第二列是它的汇编形式；
+				<br/>第三列是指令描述。</p>
+
+			<pre class="code">
+1RXY    Load  R, [XY]    将主存中地址 XY 的内容读取到寄存器 R
+2RXY    Load  R, XY      将数 XY 写入到寄存器 R
+3RXY    Store R, [XY]    将寄存器 R 的值写入到地址 XY
+40RS    Mov   R, S       将寄存器 R 的值复制到寄存器 S 中
+5RST    Add   R, S, T    将寄存器 S 与 T 的数值（补码）相加，结果存入到寄存器 R 中
+6R0X    Shl   R, X       将寄存器 R 中的数左移 X 位，用 0 填充腾空的位
+7R00    Not   R          将寄存器 R 中的数按位取反
+8RXY    Jmp   R, XY      如果寄存器 R 与寄存器 0 的值相同，将程序计数器的值设为 XY
+9000    Halt             停机
+</pre>
+
+			<h2>实现</h2>
+			<p>进行中：<a href="../toolbox/vcomputer.html">Vcomputer</a></p>
+			<p>基本功能已完成。（待完成：界面美化、状态编辑器、存取操作可视化……）</p>
+
+			<h2>程序示例</h2>
+
+			<h2>扩展</h2>
+			<p>这个机器的指令集可能太少了，特别是如果你需要标准输入输出或者绘图…… 甚至是扩展物理地址空间？</p>
+			<p>下面是一些瞎想的扩展指令：</p>
+			<pre class="code">
+AM0R    Print M, R       将寄存器 R 的值作为数字（M 为 0 时）或作为字符（M 为 1 时）输出
+BM0R    Input M, R       请求用户输入数值或字符（取决于 M），结果存入寄存器 R
+CVXY    Draw  V, X, Y    更改画布里一个像素的颜色，三个寄存器 V、X、Y 分别提供颜色、横坐标、纵坐标
+...
+F???    ?????            为更长的指令预留
+</pre>
+			<p>（目前并没有实现这些指令。）</p>
+		</div>
+	</div>
+	<script onload="sw.blog()" src="../serviceWorker.js"></script>
+</body>
+
+</html>

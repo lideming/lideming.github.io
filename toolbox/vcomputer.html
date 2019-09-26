@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Vcomputer</title>
+    <style>
+        body {
+            font-family: monospace;
+        }
+
+        #memview {
+            white-space: pre;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="memview"></div>
+    <div style="margin-top: 1em">
+        <div>
+            <button onclick="ui_write()">Write</button>
+            <button onclick="ui_run(true)">Run (step)</button>
+            <button onclick="ui_run()">Run</button>
+            <button onclick="ui_reset()">Reset</button>
+            <button onclick="ui_reset(true)">Reset (keep mem)</button>
+        </div>
+        Write Parameters:
+        <div>
+            Offset (HEX):
+            <input id="write-offset" type="text" value="00">
+        </div>
+        <div>
+            Content (HEX):<br/>
+            <textarea id="write-content" cols="40" rows="5"></textarea>
+        </div>
+    </div>
+    <script>
+        'use strict';
+        var Vcomp = function () {
+            var thiz = this;
+            var regs = new Uint8Array(16 + 2 + 1);
+            // registers: 16 + CIR + PC
+            var cirreg = 16;
+            var pcreg = 18;
+
+            var cir = 0;
+            // current instruction register
+
+            var mem = new Uint8Array(256);
+
+            var state = '';
+
+            Object.defineProperty(this, 'regs', { get: () => regs });
+            Object.defineProperty(this, 'cir', { get: () => cir });
+            Object.defineProperty(this, 'mem', { get: () => mem });
+            Object.defineProperty(this, 'pc', { get: () => regs[pcreg] });
+            Object.defineProperty(this, 'state', { get: () => state });
+
+            var readMem = this.readMem = function (pos) {
+                return mem[pos];
+            };
+
+            var writeMem = this.writeMem = function (pos, val) {
+                mem[pos] = val;
+            };
+
+            this.writeMemArr = function (pos, u8arr) {
+                for (var i = 0; i < u8arr.length; i++) {
+                    comp.writeMem(pos + i, u8arr[i]);
+                }
+            };
+
+            var readReg = this.readReg = function (pos) {
+                return regs[pos];
+            };
+
+            var writeReg = this.writeReg = function (pos, val) {
+                regs[pos] = val;
+            };
+
+            var tick = this.tick = function () {
+                state = '';
+                var pc = readReg(pcreg);
+                var cir0 = readMem(pc);
+                var cir1 = readMem(pc + 1);
+                writeReg(cirreg, cir0);
+                writeReg(cirreg + 1, cir1);
+                var incrPc = true;
+
+                var opcode = (cir0 & 0xF0) >> 4;
+                var v1 = (cir0 & 0x0F) >> 0;
+                var v2 = (cir1 & 0xF0) >> 4;
+                var v3 = (cir1 & 0x0F) >> 0;
+                var v23 = cir1;
+                // console.log('tick', { pc, cir, opcode, v1, v2, v3, v23 });
+                if (opcode == 0x1) { // load from addr
+                    writeReg(v1, readMem(v23));
+                } else if (opcode == 0x2) { // load value
+                    writeReg(v1, v23);
+                } else if (opcode == 0x3) { // store
+                    writeMem(v23, readReg(v1));
+                } else if (opcode == 0x4) { // mov between regs
+                    writeReg(v3, readReg(v2));
+                } else if (opcode == 0x5) { // add
+                    writeReg(v1, readReg(v2) + readReg(v3));
+                } else if (opcode == 0x6) { // shl
+                    writeReg(v1, readReg(v1) << v3);
+                } else if (opcode == 0x7) { // not
+                    writeReg(v1, ~readReg(v1));
+                } else if (opcode == 0x8) { // jmp
+                    var rR = readReg(v1);
+                    var r0 = readReg(0);
+                    if (rR == r0) {
+                        writeReg(pcreg, v23);
+                        incrPc = false;
+                    }
+                } else if (opcode == 0x9) { // halt
+                    halt();
+                    incrPc = false;
+                } else {
+                    error('unknown opcode ' + opcode);
+                    incrPc = false;
+                }
+
+                if (incrPc && pc + 2 <= 256 - 2) writeReg(pcreg, pc + 2);
+            };
+
+            var error = function (str) {
+                state = 'error: pc ' + thiz.pc + ': ' + str;
+            };
+
+            var halt = function () {
+                state = 'stopped';
+            };
+
+            var run = this.run = function () {
+                do {
+                    tick();
+                } while (!state);
+            };
+
+            var reset = this.reset = function (keepMem) {
+                regs.fill(0);
+                state = '';
+                if (!keepMem) mem.fill(0);
+            };
+        };
+
+        var comp = new Vcomp();
+        var memview = document.getElementById('memview');
+
+        function render() {
+            var reg = comp.regs;
+            var mem = comp.mem;
+            memview.textContent = 'REG:\n' + u8arrtohex(reg, true)
+                + '\n\nMEM:\n' + u8arrtohex(mem, true)
+                + '\nSTAT: ' + comp.state;
+        }
+
+        function u8tohex(u8) {
+            var hex = '0123456789ABCDEF';
+            return hex[u8 >> 4] + hex[u8 & 0x0F];
+        }
+
+        function u8arrtohex(u8arr, format) {
+            var hex = '0123456789ABCDEF';
+            var str = '';
+            for (var i = 0; i < u8arr.length; i++) {
+                var byte = u8arr[i];
+                str += u8tohex(byte);
+                if (format) {
+                    if (i % 16 == 15) str += '\n';
+                    else if (i % 4 == 3) str += ' ';
+                }
+            }
+            return str;
+        }
+
+        function parsehex(str) {
+            var last = -1;
+            var arr = [];
+            for (var i = 0; i < str.length; i++) {
+                var ch = str[i];
+                var r = '0123456789abcdefABCDEF'.search(ch);
+                if (r < 0) continue;
+                if (r > 15) r -= 6;
+                if (last !== -1) {
+                    arr.push(last | r);
+                    last = -1;
+                } else {
+                    last = r << 4;
+                }
+            }
+            return Uint8Array.from(arr);
+        }
+
+        function ui_write() {
+            var pos = parseInt('0x' + document.getElementById('write-offset').value);
+            var content = parsehex(document.getElementById('write-content').value);
+            // console.log("ui_write:", { pos, content });
+            comp.writeMemArr(pos, content);
+            render();
+        }
+
+        function ui_run(step) {
+            if (step) comp.tick();
+            else comp.run();
+            render();
+        }
+
+        function ui_reset(keepMem) {
+            comp.reset(keepMem);
+            render();
+        }
+
+        render();
+
+    </script>
+</body>
+
+</html>

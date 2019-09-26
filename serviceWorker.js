@@ -13,7 +13,9 @@
             '/toolbox/countdown-ring.mp3',
             '/img/external-link.svg',
             '/toolbox/minesweeper.html',
-            '/blog/style.css'
+            '/blog/style.css',
+            '/blog/vcomputer.html',
+            '/toolbox/vcomputer.html'
         ];
 
         var updateCache = function () {
