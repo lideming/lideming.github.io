@@ -75,6 +75,8 @@
         getTime: function () { return new Date().getTime(); }
     };
 
+    var protocolFile = window.location.protocol == 'file:';
+
     var newVersionState = null;
 
     var swNotSupported = true;
@@ -169,15 +171,29 @@
     };
 
     var renderBlog = function () {
-        appendStyleLink('style.css');
+        var style = appendStyleLink('style.css');
+        document.body.hidden = true;
+        style.onload = function () {
+            console.log('blog style loaded.');
+            setTimeout(function () {document.body.hidden = false;}, 0);
+            
+        };
+        style.onerror = function () {
+            document.body.hidden = false;
+            document.body.insertBefore(sw.buildDOM({
+                tag: 'div#style-failed',
+                style: 'color: red',
+                textContent: 'Failed to load blog style!'
+            }), header);
+        };
 
         var header = sw.buildDOM({
             tag: 'div.header',
             child: {
                 tag: 'div.header-inner',
                 child: [{
-                    tag: 'a',
-                    href: '../'
+                    tag: 'a#titlelink',
+                    href: protocolFile ? '../index.html' : '../'
                 }, {
                     tag: 'div#darkTheme.btn'
                 }]
@@ -206,6 +222,7 @@
         link.rel = 'stylesheet';
         link.href = uri;
         document.head.appendChild(link);
+        return link;
     };
 
     // ==============

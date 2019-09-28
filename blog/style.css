@@ -5,6 +5,7 @@ body {
     background: #fafafa;
     color: #232323;
     font-family: sans-serif;
+    transition: color .5s, background-color .5s;
 }
 
 body.dark {
@@ -62,6 +63,7 @@ a:hover {
 code, .code {
     white-space: pre;
     background: #e3e3e3;
+    transition: background-color .5s;
     font-family: 'Consolas', 'Courier New', Courier, monospace;
     padding: 0 .3em;
 }
@@ -117,6 +119,7 @@ code, .code {
     background: #1976d2;
     color: white;
     line-height: 1.5em;
+    animation: header-in .5s;
 }
 
 .header a {
@@ -136,6 +139,15 @@ code, .code {
     padding: .5em 1em;
     margin: 0 auto;
     max-width: 800px;
+}
+
+@keyframes header-in {
+    from {
+        transform: translate(0, -80%);
+        opacity: .3;
+    }
+
+    to {}
 }
 
 #darkTheme {
