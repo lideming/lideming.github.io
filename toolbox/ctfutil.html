@@ -83,10 +83,15 @@
             canvas.width = img.width;
             canctx.drawImage(img, 0, 0);
             img.hidden = true;
+            console.info('img loaded');
         };
 
         function getImageData() {
-            return canctx.getImageData(0, 0, canvas.height, canvas.width);
+            return canctx.getImageData(0, 0, canvas.width, canvas.height);
+        }
+
+        function putImageData(img) {
+            canctx.putImageData(img, 0, 0);
         }
 
         function LsbReader(data) {
@@ -125,6 +130,39 @@
         }
 
         if (img_file.files.length) img_selected();
+
+        function u8arrxor(a1, a2) {
+            var r = new Uint8Array(a1.length);
+            a1.forEach((x, i) => r[i] = x ^ a2[i]);
+            return r;
+        }
+
+        function imgxor(img1, img2) {
+            var r = new ImageData(img1.width, img1.height);
+            var dr = r.data;
+            var d1 = img1.data, d2 = img2.data;
+            d1.forEach((x, i) => {
+                if (i % 4 !== 3) dr[i] = x ^ d2[i];
+                else {
+                    dr[i] = 255;
+                    if (d1[i] != 255 && d2[i] != 255) {
+                        console.warn('non 255 alpha detected');
+                    }
+                }
+            });
+            return r;
+        }
+
+        function imgDataSetAlpha(img, alpha) {
+            if (alpha === undefined) alpha = 255;
+            for (var i = 3; i < img.length; i += 4) img[i] = alpha;
+        }
+
+        function arrCount(arr) {
+            var map = {};
+            arr.forEach(x => map[x] = (map[x] || 0) + 1);
+            return map;
+        }
 
         console.log('and open source file please. (no docs)');
 
