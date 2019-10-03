@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Calc</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: sans-serif;
+        }
+
+        textarea {
+            width: 100%;
+            resize: vertical;
+            font-family: monospace;
+        }
+
+        button {
+            min-width: 5em;
+        }
+
+        .box {
+            color: white;
+            position: relative;
+            background: #1976d2;
+            padding: .3em;
+            margin: 1em .3em;
+            box-shadow: .2em .2em .5em .3em rgba(127, 127, 127, .4);
+        }
+
+        .box-ro {
+            background: gray;
+        }
+
+        .box-final {
+            background: #6d4c41;
+        }
+
+        .boxinner {
+            color: black;
+            background: white;
+            min-height: 2em;
+            font-family: Consolas, monospace;
+            white-space: pre-wrap;
+            margin-top: .2em;
+        }
+
+        .item {
+            display: inline-block;
+            margin: .1em .2em;
+            background: #bbb;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="box">
+        Input
+        <textarea id="input"></textarea>
+        <button onclick="gui_run()">Run</button>
+    </div>
+    <div class="box box-final">
+        Output
+        <div class="boxinner" id="output"></div>
+    </div>
+    <div class="box box-ro">
+        RPN
+        <div class="boxinner" id="rpnoutput"></div>
+    </div>
+    <div class="box box-ro">
+        Parser Output
+        <div class="boxinner" id="parseroutput"></div>
+    </div>
+    <div class="box box-ro">
+        Lexer Output
+        <div class="boxinner" id="lexeroutput"></div>
+    </div>
+    <script src="../serviceWorker.js"></script>
+    <script>
+        'use strict';
+        // ES6 compatible
+
+        var arrToMap = function (arr, key) {
+            var map = {};
+            arr.forEach(x => map[x[key]] = x);
+            return map;
+        };
+
+        var Op = function (op, prec, calc) {
+            this.op = op; this.prec = prec; this.calc = calc;
+        };
+        Op.prototype.toString = function () {
+            return `{${this.op} prec=${this.prec}}`;
+        };
+
+        // binary operators
+        var BinOps = arrToMap([
+            new Op('+', 10, (x, y) => x + y),
+            new Op('-', 10, (x, y) => x - y),
+            new Op('*', 20, (x, y) => x * y),
+            new Op('/', 20, (x, y) => x / y),
+            new Op('^', 30, (x, y) => Math.pow(x, y)),
+        ], 'op');
+
+        var Lexer = function (input) {
+            var curpos = 0;
+            var linestart = 0;
+            var line = 1;
+            var queue = []; // tokens queue
+
+            var linepos = () => line + ':' + (curpos - linestart);
+
+            var Token = function (typ, val, pos) {
+                this.typ = typ; // 'op' | '(' | ')' | 'num' | 'hash' | 'eof'
+                this.val = val; // String | Number | undefined
+                this.pos = pos; // String
+            };
+            Token.prototype.toString = function () {
+                // return `{${this.typ} '${this.val}' at ${this.pos}}`;
+                var str = '{' + this.typ;
+                if (this.val !== undefined) str += ' \'' + this.val + '\'';
+                str += ' at ' + this.pos + '}';
+                return str;
+            };
+
+            // read a token from input and return it
+            var next = function () {
+                var ch; // Number
+                var str; // String
+
+                // skip whitespaces
+                while (ch = input.charCodeAt(curpos), ch === 32 || ch === 10 || ch === 9) { // [ \n\t]
+                    curpos++;
+                    // maintain the line number
+                    if (ch === 10) {
+                        linestart = curpos;
+                        line++;
+                    }
+                }
+
+                str = fromChar(ch);
+                if (isNaN(ch)) return new Token('eof', undefined, linepos());
+                if (isnum(ch)) {
+                    var start = curpos;
+                    var tokenpos = linepos();
+                    do { ch = input.charCodeAt(++curpos); } while (isnum(ch));
+                    // now we are at the end of the number
+                    var val = parseFloat(input.substring(start, curpos));
+                    return new Token('num', val, tokenpos);
+                } else if (isop(ch)) {
+                    var tokenpos = linepos(); curpos++;
+                    return new Token('op', BinOps[str], tokenpos);
+                } else if (str === '(' || str === ')') {
+                    var tokenpos = linepos(); curpos++;
+                    return new Token(str, undefined, tokenpos);
+                } else if (str === '#') {
+                    var tokenpos = linepos(); curpos++;
+                    return new Token('hash', undefined, tokenpos);
+                } else {
+                    throw new Error(`unknown char '${str}' at ${linepos()}`);
+                }
+            };
+
+            // helper functions
+            var isnum = (val) => isbetween(val, 48, 57) || val === 46 || val === 101; // [0-9\.e]
+            var numval = (val) => val - 48;
+            var isop = (val) => BinOps[fromChar(val)] !== undefined;
+            var isbetween = (val, min, max) => val >= min && val <= max;
+            var fromChar = String.fromCharCode;
+
+            var ensureQueue = function (pos) {
+                while (queue.length <= pos) {
+                    var tok = next();
+                    onnext && onnext(tok);
+                    queue.push(tok);
+                }
+            }
+
+            // a hook for UI
+            var onnext;
+            Object.defineProperty(this, 'onnext', { get: () => onnext, set: x => onnext = x });
+
+            // public methods
+            this.peek = function (pos) {
+                pos = pos || 0;
+                ensureQueue(pos);
+                return queue[pos];
+            };
+
+            this.consume = function () {
+                ensureQueue(0);
+                return queue.shift();
+            };
+
+            this.tryExpect = function (typ) {
+                return this.peek().typ === typ;
+            };
+
+            this.expect = function (typ) {
+                if (!this.tryExpect(typ))
+                    throw new Error(`expected token type '${typ}', got ${this.peek()}`);
+                return this.peek();
+            };
+
+            this.expectAndConsume = function (typ) {
+                this.expect(typ);
+                return this.consume();
+            }
+        };
+
+        var AST = function (typ, props) {
+            this.typ = typ; // String
+            // this.val: optional, Number
+            // this.calc: () -> Number
+            for (var key in props) {
+                if (props.hasOwnProperty(key)) {
+                    this[key] = props[key];
+                }
+            }
+        };
+        AST.prototype.calc = function () { return this.val; };
+        AST.prototype.print = function () { return this.val; };
+        AST.prototype.toString = function () {
+            var str = '{' + this.typ;
+            for (var key in this) {
+                if (this.hasOwnProperty(key) && key != 'calc' && key != 'typ' && key != 'token') {
+                    var val = this[key];
+                    str += ' ' + key + '=' + val;
+                }
+            }
+            str += '}';
+            return str;
+        };
+
+        var Parser = function (input) {
+            var lexer = input instanceof Lexer ? input : new Lexer(input);
+
+            var parseValue = function () {
+                if (lexer.tryExpect('op')) { // if there is something like '-1' or '-(1 + 2)'
+                    var op = lexer.peek();
+                    if (op.val.op !== '-') throw new Error(`operator '-' expected, got ${op}`);
+                    lexer.consume();
+                    var child = parseValue();
+                    if (child.typ === 'num') { // a little optimizations
+                        child.val = -child.val;
+                        return child;
+                    } else if (child.typ === 'neg') {
+                        return child.child;
+                    }
+                    return new AST('neg', { token: op, child, calc: function () { return -this.child.calc(); } });
+                } else if (lexer.tryExpect('(')) {
+                    lexer.consume();
+                    var expr = parseExpr();
+                    lexer.expectAndConsume(')');
+                    return expr;
+                } else {
+                    lexer.expect('num');
+                    var tok = lexer.consume();
+                    return new AST('num', { val: tok.val, token: tok });
+                }
+            };
+
+            // https://en.wikipedia.org/wiki/Operator-precedence_parser
+            var parseExpr = function () {
+                return parseBinOp(parseValue(), 0);
+            };
+
+            var parseBinOp = function (left, minPrec) {
+                var op;
+                while (op = lexer.peek(), op.typ === 'op' && op.val.prec >= minPrec) {
+                    lexer.consume();
+                    var right = parseValue();
+                    var nextop;
+                    while (nextop = lexer.peek(), nextop.typ === 'op' && nextop.val.prec > op.val.prec) {
+                        right = parseBinOp(right, nextop.val.prec);
+                    }
+                    left = createBinOpAST(op, left, right);
+                }
+                return left;
+            };
+
+            var createBinOpAST = function (tok, left, right) {
+                return new AST('binop', {
+                    token: tok, op: tok.val, left, right, calc: function () {
+                        return this.op.calc(this.left.calc(), this.right.calc());
+                    }
+                });
+            }
+
+            // public methods
+            this.parse = function () {
+                lexer.expectAndConsume('hash');
+                var expr = parseExpr();
+                lexer.expectAndConsume('hash');
+                lexer.expectAndConsume('eof');
+                return expr;
+            };
+        };
+
+        function astToRPN(ast) {
+            if (ast.typ == 'num') return ast.val >= 0 ? ast.val : -ast.val + ' NEG';
+            if (ast.typ == 'neg') return astToRPN(ast.child) + ' NEG';
+            if (ast.typ == 'binop') return astToRPN(ast.left) + ' ' + astToRPN(ast.right) + ' ' + ast.op.op;
+            throw new Error('unknown ast type ' + ast.typ);
+        }
+
+        var calc = function (str) {
+            return new Parser(str).parse().calc();
+        };
+
+        function byId(id) {
+            return document.getElementById(id);
+        }
+
+        function gui_run() {
+            var viewLexer = byId('lexeroutput'),
+                viewParser = byId('parseroutput'),
+                viewRpn = byId('rpnoutput'),
+                viewOutput = byId('output');
+            [viewLexer, viewParser, viewRpn, viewOutput].forEach(x => x.textContent = '');
+            viewOutput.style.color = null;
+
+            try {
+                var input = byId('input').value;
+                var lexer = new Lexer(input);
+                var parser = new Parser(lexer);
+
+
+                lexer.onnext = (tok) => {
+                    viewLexer.appendChild(sw.buildDOM({
+                        tag: 'div.item',
+                        textContent: tok
+                    }));
+                };
+
+                var ast = parser.parse();
+
+                viewParser.textContent = ast.toString();
+
+                viewRpn.textContent = astToRPN(ast);
+
+                viewOutput.textContent = ast.calc();
+            } catch (error) {
+                viewOutput.textContent = error;
+                viewOutput.style.color = 'red';
+            }
+        }
+    </script>
+</body>
+
+</html>
