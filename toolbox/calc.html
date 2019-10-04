@@ -19,6 +19,7 @@
             width: 100%;
             resize: vertical;
             font-family: monospace;
+            border: none;
         }
 
         button {
@@ -62,8 +63,8 @@
 <body>
     <div class="box">
         Input
-        <textarea id="input"></textarea>
-        <button onclick="gui_run()">Run</button>
+        <textarea class="boxinner" id="input" autofocus></textarea>
+        <button onclick="gui_run()" title="Run (Ctrl + Enter)">Run</button>
     </div>
     <div class="box box-final">
         Output
@@ -81,7 +82,6 @@
         Lexer Output
         <div class="boxinner" id="lexeroutput"></div>
     </div>
-    <script src="../serviceWorker.js"></script>
     <script>
         'use strict';
         // ES6 compatible
@@ -92,6 +92,7 @@
             return map;
         };
 
+        // class Op
         var Op = function (op, prec, calc) {
             this.op = op; this.prec = prec; this.calc = calc;
         };
@@ -108,14 +109,48 @@
             new Op('^', 30, (x, y) => Math.pow(x, y)),
         ], 'op');
 
+        // class Lexer
         var Lexer = function (input) {
             var curpos = 0;
-            var linestart = 0;
-            var line = 1;
             var queue = []; // tokens queue
 
+            // line number state
+            var line = 1;
+            var linestart = 0;
             var linepos = () => line + ':' + (curpos - linestart);
 
+            // hook for GUI
+            var onnext;
+            Object.defineProperty(this, 'onnext', { get: () => onnext, set: x => onnext = x });
+
+            // public methods
+            this.peek = function (pos) {
+                pos = pos || 0;
+                ensureQueue(pos);
+                return queue[pos];
+            };
+
+            this.consume = function () {
+                ensureQueue(0);
+                return queue.shift();
+            };
+
+            this.tryExpect = function (typ) {
+                return this.peek().typ === typ;
+            };
+
+            this.expect = function (typ) {
+                if (!this.tryExpect(typ))
+                    throw new Error(`expected token type '${typ}', got ${this.peek()}`);
+                return this.peek();
+            };
+
+            this.expectAndConsume = function (typ) {
+                this.expect(typ);
+                return this.consume();
+            };
+
+            // class Token
             var Token = function (typ, val, pos) {
                 this.typ = typ; // 'op' | '(' | ')' | 'num' | 'hash' | 'eof'
                 this.val = val; // String | Number | undefined
@@ -169,7 +204,6 @@
 
             // helper functions
             var isnum = (val) => isbetween(val, 48, 57) || val === 46 || val === 101; // [0-9\.e]
-            var numval = (val) => val - 48;
             var isop = (val) => BinOps[fromChar(val)] !== undefined;
             var isbetween = (val, min, max) => val >= min && val <= max;
             var fromChar = String.fromCharCode;
@@ -180,40 +214,11 @@
                     onnext && onnext(tok);
                     queue.push(tok);
                 }
-            }
-
-            // a hook for UI
-            var onnext;
-            Object.defineProperty(this, 'onnext', { get: () => onnext, set: x => onnext = x });
-
-            // public methods
-            this.peek = function (pos) {
-                pos = pos || 0;
-                ensureQueue(pos);
-                return queue[pos];
             };
 
-            this.consume = function () {
-                ensureQueue(0);
-                return queue.shift();
-            };
-
-            this.tryExpect = function (typ) {
-                return this.peek().typ === typ;
-            };
-
-            this.expect = function (typ) {
-                if (!this.tryExpect(typ))
-                    throw new Error(`expected token type '${typ}', got ${this.peek()}`);
-                return this.peek();
-            };
-
-            this.expectAndConsume = function (typ) {
-                this.expect(typ);
-                return this.consume();
-            }
         };
 
+        // class AST
         var AST = function (typ, props) {
             this.typ = typ; // String
             // this.val: optional, Number
@@ -224,12 +229,13 @@
                 }
             }
         };
+        // AST methods
         AST.prototype.calc = function () { return this.val; };
         AST.prototype.print = function () { return this.val; };
         AST.prototype.toString = function () {
             var str = '{' + this.typ;
             for (var key in this) {
-                if (this.hasOwnProperty(key) && key != 'calc' && key != 'typ' && key != 'token') {
+                if (this.hasOwnProperty(key) && ['calc', 'typ', 'token', 'rpn'].indexOf(key) == -1) {
                     var val = this[key];
                     str += ' ' + key + '=' + val;
                 }
@@ -237,14 +243,47 @@
             str += '}';
             return str;
         };
+        // AST static methods
+        AST.createNumAST = function (tok) {
+            return new AST('num', {
+                val: tok.val, token: tok,
+                rpn: function () { return this.val >= 0 ? this.val : -this.val + ' NEG'; }
+            });
+        };
+        AST.createBinOpAST = function (tok, left, right) {
+            return new AST('binop', {
+                token: tok, op: tok.val, left, right,
+                calc: function () {
+                    return this.op.calc(this.left.calc(), this.right.calc());
+                },
+                rpn: function () { return this.left.rpn() + ' ' + this.right.rpn() + ' ' + this.op.op; }
+            });
+        };
+        AST.createNegAST = function (tok, child) {
+            return new AST('neg', {
+                token: tok, child,
+                calc: function () { return -this.child.calc(); },
+                rpn: function () { return this.child.rpn() + ' NEG'; }
+            });
+        };
 
+        // class Parser
         var Parser = function (input) {
             var lexer = input instanceof Lexer ? input : new Lexer(input);
 
+            // public methods
+            this.parse = function () {
+                // the '#' is optional
+                var expr = parseHashExpr() || parseExpr();
+                lexer.expectAndConsume('eof');
+                return expr;
+            };
+
+            // private methods
             var parseValue = function () {
                 if (lexer.tryExpect('op')) { // if there is something like '-1' or '-(1 + 2)'
                     var op = lexer.peek();
-                    if (op.val.op !== '-') throw new Error(`operator '-' expected, got ${op}`);
+                    if (op.val.op !== '-') throw new Error(`unexpected operator ${op}`);
                     lexer.consume();
                     var child = parseValue();
                     if (child.typ === 'num') { // a little optimizations
@@ -253,7 +292,7 @@
                     } else if (child.typ === 'neg') {
                         return child.child;
                     }
-                    return new AST('neg', { token: op, child, calc: function () { return -this.child.calc(); } });
+                    return AST.createNegAST(op, child);
                 } else if (lexer.tryExpect('(')) {
                     lexer.consume();
                     var expr = parseExpr();
@@ -262,7 +301,7 @@
                 } else {
                     lexer.expect('num');
                     var tok = lexer.consume();
-                    return new AST('num', { val: tok.val, token: tok });
+                    return AST.createNumAST(tok);
                 }
             };
 
@@ -280,39 +319,26 @@
                     while (nextop = lexer.peek(), nextop.typ === 'op' && nextop.val.prec > op.val.prec) {
                         right = parseBinOp(right, nextop.val.prec);
                     }
-                    left = createBinOpAST(op, left, right);
+                    left = AST.createBinOpAST(op, left, right);
                 }
                 return left;
             };
 
-            var createBinOpAST = function (tok, left, right) {
-                return new AST('binop', {
-                    token: tok, op: tok.val, left, right, calc: function () {
-                        return this.op.calc(this.left.calc(), this.right.calc());
-                    }
-                });
-            }
-
-            // public methods
-            this.parse = function () {
-                lexer.expectAndConsume('hash');
+            var parseHashExpr = function () {
+                if (!lexer.tryExpect('hash')) return null;
+                lexer.consume();
                 var expr = parseExpr();
                 lexer.expectAndConsume('hash');
-                lexer.expectAndConsume('eof');
                 return expr;
             };
         };
 
-        function astToRPN(ast) {
-            if (ast.typ == 'num') return ast.val >= 0 ? ast.val : -ast.val + ' NEG';
-            if (ast.typ == 'neg') return astToRPN(ast.child) + ' NEG';
-            if (ast.typ == 'binop') return astToRPN(ast.left) + ' ' + astToRPN(ast.right) + ' ' + ast.op.op;
-            throw new Error('unknown ast type ' + ast.typ);
-        }
-
         var calc = function (str) {
             return new Parser(str).parse().calc();
         };
+
+        /////////////////
+        // GUI
 
         function byId(id) {
             return document.getElementById(id);
@@ -331,27 +357,36 @@
                 var lexer = new Lexer(input);
                 var parser = new Parser(lexer);
 
-
                 lexer.onnext = (tok) => {
-                    viewLexer.appendChild(sw.buildDOM({
-                        tag: 'div.item',
-                        textContent: tok
-                    }));
+                    if (window.sw) {
+                        viewLexer.appendChild(sw.buildDOM({
+                            tag: 'div.item',
+                            textContent: tok
+                        }));
+                    } else {
+                        viewLexer.textContent = '(serviceWorker.js is not loaded)';
+                    }
                 };
 
                 var ast = parser.parse();
 
                 viewParser.textContent = ast.toString();
-
-                viewRpn.textContent = astToRPN(ast);
-
+                viewRpn.textContent = ast.rpn();
                 viewOutput.textContent = ast.calc();
             } catch (error) {
                 viewOutput.textContent = error;
                 viewOutput.style.color = 'red';
             }
         }
+
+        // register event for Ctrl + Enter
+        byId('input').addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && (e.keyCode == 13 || e.keyCode == 10)) {
+                gui_run();
+            }
+        });
     </script>
+    <script src="../serviceWorker.js" defer async></script>
 </body>
 
 </html>
