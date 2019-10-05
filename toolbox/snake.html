@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%;">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Snake</title>
+    <style>
+        .header,
+        .header-holder {
+            height: 64px;
+        }
+
+        .header {
+            top: 0;
+            left: 0;
+            right: 0;
+            position: fixed;
+            z-index: 100;
+            box-shadow: 0 0 6px #666;
+            background: #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header .btn {
+            height: 20px;
+            margin: 0 20px;
+        }
+
+        .header-title {
+            margin: 0 20px;
+            font-size: 24px;
+            line-height: 64px;
+            display: inline;
+        }
+
+        #game-viewport {
+            flex: 1;
+            display: flex;
+            /* justify-content: center;
+            align-items: center; */
+            overflow: auto;
+        }
+
+        #field-outer {
+            margin: auto;
+            padding: 10px;
+        }
+
+        #field {
+            font-size: 24px;
+            box-shadow: gray 0 0 .5em;
+        }
+
+        .grid {
+            background: #1565c0;
+            transition: background .2s;
+            width: 100%;
+            height: 100%;
+            line-height: 2em;
+            font-size: 50%;
+            text-align: center;
+            color: white;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        .grid-2 {
+            background: #1976d2;
+        }
+
+        .grid-2.open {
+            background: #ddd;
+        }
+
+        .grid.state-1 {
+            background: black;
+        }
+
+        .grid.state-2 {
+            background: red;
+        }
+
+        #settings-overlay {
+            position: fixed;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 200;
+            background: rgba(255, 255, 255, .8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            margin: .6em;
+            background: #eee;
+            color: black;
+            padding: .5em .5em;
+            min-width: 10em;
+            max-width: 16em;
+            border-radius: .2em;
+            box-shadow: 2px 2px 10px gray;
+            pointer-events: initial;
+        }
+
+        .option-group-title {
+            font-size: 110%;
+            height: 1.5em;
+            font-weight: bold;
+            padding-bottom: .3em;
+            text-align: center;
+        }
+
+        .option-group-content {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            /* justify-content: space-around; */
+        }
+
+        .option-group-content>* {
+            margin: .15em 0;
+            /* height: 1.6em; */
+            /* line-height: 1.6em; */
+        }
+
+        .option-row {
+            display: flex;
+            justify-content: space-between;
+            /* width: 100%; */
+            /* margin: .2em 0; */
+        }
+
+        .labeled-input input {
+            margin-left: .15em;
+            width: 5em;
+        }
+
+        .labeled-input {
+            user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            -moz-user-select: none;
+        }
+
+        .btn {
+            display: flex;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            transition: all .3s;
+            padding: .3em .5em;
+            min-width: 3em;
+            line-height: 1em;
+            /* margin: .5em; */
+            background: hsl(207, 90%, 54%);
+            color: white;
+            /* border-radius: .3em; */
+            box-shadow: 0 0 .3em gray;
+            cursor: pointer;
+            -ms-user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transition: all .05s;
+            background: hsl(207, 90%, 61%);
+        }
+
+        .btn.btn-down {
+            cursor: default;
+        }
+
+        .btn.btn-down,
+        .btn:active {
+            transition: all .05s;
+            background: hsl(207, 90%, 70%);
+            box-shadow: 0 0 .1em gray;
+        }
+
+        .btn.dark {
+            background: hsl(207, 90%, 40%);
+        }
+
+        .btn.dark:hover {
+            background: hsl(207, 90%, 45%);
+        }
+
+        .btn.light {
+            background: hsl(207, 90%, 70%);
+        }
+
+        .btn.light:hover {
+            background: hsl(207, 90%, 80%);
+        }
+
+        .btn.disabled {
+            background: rgb(37, 78, 105);
+        }
+
+        .btn.disabled:hover {
+            background: rgb(66, 94, 112);
+        }
+
+        .btn.dangerous {
+            background: hsl(0, 100%, 61%)
+        }
+
+        .btn.btn.dangerous:hover {
+            background: hsl(0, 100%, 70%)
+        }
+    </style>
+</head>
+
+<body style="font-family: sans-serif; display: flex; flex-direction: column; height: 100%; margin: 0;">
+    <div class="header">
+        <h1 class="header-title">Snake</h1>
+        <span id="header-stat"></span>
+        <div class="btn" id="header-newgame">New Game</div>
+    </div>
+    <div class="header-holder"></div>
+    <div id="game-viewport" style="text-align: center; flex: 1;">
+        <div id="field-outer">
+            <div id="field"></div>
+        </div>
+    </div>
+    <div id="settings-overlay" style="display: none;" onclick="(event.target == this) && (this.style.display = 'none')">
+        <div class="option-group" style="margin: 20px auto 0;">
+            <div class="option-group-title">Game Settings</div>
+            <div class="option-group-content">
+                <label class="option-row labeled-input">Height<input type="number" min="1" id="input-h" value="16"></label>
+                <label class="option-row labeled-input">Width<input type="number" min="1" id="input-w" value="16"></label>
+                <div class="btn" onclick="ui_newgame()">New Game</div>
+            </div>
+        </div>
+    </div>
+    <script>
+
+        var Point = function (x, y) {
+            this.x = x;
+            this.y = y;
+        };
+
+        var GridItem = function (inner) {
+            this.outer = document.createElement('div');
+            this.inner = null;
+            this.setInner(inner);
+        };
+        GridItem.prototype.setInner = function (inner) {
+            if (this.inner) this.outer.removeChild(this.inner);
+            this.inner = inner;
+            this.outer.appendChild(inner);
+        };
+        var Grids = function (container) {
+            this.container = container;
+            var items = [];
+            var map = new Map2D();
+            var gridW = 1, gridH = 1;
+            var currentSize = { x: 0, y: 0 };
+            var layoutItem = (item) => {
+                var ele = item.outer;
+                ele.style.position = 'absolute';
+                ele.style.left = (item.x * gridW) + 'em';
+                ele.style.top = (item.y * gridH) + 'em';
+                ele.style.width = gridW + 'em';
+                ele.style.height = gridH + 'em';
+            };
+            var layoutAll = () => {
+                items.forEach(x => {
+                    layoutItem(x);
+                });
+                layoutContainer();
+            };
+            var layoutContainer = () => {
+                container.style.position = 'relative';
+                container.style.width = (currentSize.x * gridW) + 'em';
+                container.style.height = (currentSize.y * gridH) + 'em';
+            };
+            this.setGridSize = (w, h) => {
+                gridW = w; gridH = h;
+                layoutAll();
+            };
+            var add = (x, y, element) => {
+                var item = new GridItem(element);
+                item.x = x;
+                item.y = y;
+                currentSize.x = Math.max(x + 1, currentSize.x);
+                currentSize.y = Math.max(y + 1, currentSize.y);
+                items.push(item);
+                map.set(x, y, item);
+                layoutItem(item);
+                if (element) item.setInner(element);
+                container.appendChild(item.outer);
+                layoutContainer();
+            };
+            this.set = (x, y, element) => {
+                var item = map.get(x, y);
+                if (item) {
+                    item.setInner(element);
+                } else {
+                    add(x, y, element);
+                }
+            };
+            this.get = (x, y) => {
+                var item = map.get(x, y);
+                if (item) return item.inner;
+            };
+            this.clear = () => {
+                items = [];
+                map = new Map2D();
+                currentSize.x = 0;
+                currentSize.y = 0;
+                container.innerHTML = '';
+                layoutContainer();
+            };
+        };
+
+        var Map2D = function () {
+            this.map = [];
+        };
+        Map2D.prototype.set = function (x, y, val) {
+            let arrx = this.map[x];
+            if (!arrx) arrx = this.map[x] = [];
+            arrx[y] = val;
+        };
+        Map2D.prototype.get = function (x, y) {
+            let arrx = this.map[x];
+            if (arrx) return arrx[y];
+            return undefined;
+        };
+        Map2D.prototype.forEach = function (callback) {
+            this.map.forEach(x => x.forEach(callback));
+        };
+
+        var GameMapItem = function (map, x, y) {
+            this._map = map;
+            this.x = x; this.y = y;
+        };
+        Object.defineProperty(GameMapItem.prototype, 'state', {
+            get: function () { return this._state; },
+            set: function (val) { this._map.changeItemState(this, val); }
+        });
+
+        var GameMap = function (w, h) {
+            this.w = w;
+            this.h = h;
+            this.map = new Map2D();
+            this.array = [];
+            this.hasMines = false;
+            this._counters = {};
+            this.itemStateChanged = null;
+            this.snake = []; // the first element is head
+
+            for (let x = 0; x < w; x++) {
+                for (let y = 0; y < h; y++) {
+                    let item = new GameMapItem(this, x, y);
+                    item.state = 0;
+                    this.array.push(item);
+                    this.map.set(x, y, item);
+                }
+            }
+        };
+        GameMap.prototype._counterAdd = function (counter, val) {
+            this._counters[counter] = (this._counters[counter] || 0) + val;
+        };
+        GameMap.prototype.forEach = function (callback) {
+            this.array.forEach(callback);
+        };
+        GameMap.prototype.getCounters = function () {
+            return this._counters;
+        };
+        GameMap.prototype.changeItemState = function (item, val) {
+            var old = item.state;
+            if (old !== undefined) this._counterAdd(old, -1);
+            item._state = val;
+            if (val !== undefined) this._counterAdd(val, 1);
+            if (this.itemStateChanged) this.itemStateChanged(item);
+        };
+
+        var byId = (id) => document.getElementById(id);
+
+        var Game = function () {
+            var field = new Grids(byId('field'));
+            var map = null;
+            var curOptions;
+            Object.defineProperty(this, 'options', { get: () => curOptions });
+            var genMap = (w, h) => {
+                map = new GameMap(w, h);
+                field.clear();
+                var getClass = function (item) {
+                    var cls = ((item.y + item.x) % 2) ? 'grid' : 'grid grid-2';
+                    if (item.state) cls += ' state-' + item.state;
+                    return cls;
+                };
+                map.forEach(item => {
+                    let { x, y } = item;
+                    let ele = document.createElement('div');
+                    ele.className = getClass(item);
+                    field.set(x, y, ele);
+                });
+                map.itemStateChanged = function (item) {
+                    var x = item.x, y = item.y;
+                    field.get(x, y).className = getClass(item);
+                };
+                map.map.get(0, 0).state = 1;
+            };
+            var getView = (item) => field.get(item.x, item.y);
+            field.setGridSize(1, 1);
+            this.newGame = function (options) {
+                curOptions = options;
+                genMap(options.width, options.height);
+                stateChanged();
+            };
+            this.onStateChanged = null;
+            this.getCounters = () => map.getCounters();
+            var stateChanged = () => {
+                this.onStateChanged && this.onStateChanged();
+            };
+            console.log(map);
+        };
+
+        var game = new Game();
+        game.onStateChanged = function () {
+            var ctr = game.getCounters();
+        };
+        // game.newGame({ width: 16, height: 16, mines: 16 * 16 * 0.2 });
+
+        function hideSettings(hide) {
+            byId('settings-overlay').style.display = hide ? 'none' : null;
+        }
+
+        function ui_newgame() {
+            game.newGame({
+                width: byId('input-w').value,
+                height: byId('input-h').value
+            });
+            hideSettings(true);
+        }
+
+        byId('header-newgame').onclick = (e) => {
+            hideSettings(false);
+        };
+
+        ui_newgame();
+
+        document.addEventListener('keypress', (e) => {
+            if (e.key == 'a') {
+
+            }
+        });
+    </script>
+    <script async defer onload="sw.check(true)" src="../serviceWorker.js"></script>
+</body>
+
+</html>
