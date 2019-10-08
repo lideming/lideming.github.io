@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>CAS</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        body {
+            font-family: sans-serif;
+            height: 100%;
+            margin: 0;
+            font-size: 16px;
+        }
+
+        textarea {
+            width: 100%;
+            resize: vertical;
+            font-family: monospace;
+            font-size: 18px;
+            border: none;
+            border-radius: .4em;
+            padding: .3em;
+            min-height: 3em;
+        }
+
+        a {
+            color: #1976d2;
+        }
+
+        a:hover {
+            color: #63a4ff;
+        }
+
+        .box {
+            color: black;
+            position: relative;
+            background: #1976d2;
+            padding: .3em;
+            margin: .3em;
+            box-shadow: .2em .2em .5em .3em rgba(127, 127, 127, .4);
+            border-radius: .5em;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: baseline;
+            text-align: center;
+            transition: background-color .3s;
+            padding: 0 .4em;
+            min-width: 3em;
+            line-height: 1.5em;
+            background: hsl(207, 90%, 54%);
+            color: white;
+            box-shadow: 0 0 .3em gray;
+            cursor: pointer;
+            -ms-user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transition: all .05s;
+            background: hsl(207, 90%, 61%);
+        }
+
+        .btn.btn-down,
+        .btn:active {
+            transition: background-color .05s;
+            background: hsl(207, 90%, 70%);
+            box-shadow: 0 0 .1em gray;
+        }
+
+        .contentouter {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .bottombar {
+            bottom: 0;
+        }
+
+        .result {
+            position: relative;
+            margin: .5em .5em;
+            background: white;
+            white-space: pre-wrap;
+            font-family: monospace;
+            border-radius: .5em;
+            overflow: hidden;
+            animation: resultin .3s;
+        }
+
+        .result-inner {
+            padding: .3em;
+        }
+
+        .result-input {
+            background: #90caf9;
+        }
+
+        .indicator {
+            font-weight: bold;
+            margin-right: .5em;
+            display: inline-block;
+            vertical-align: top;
+        }
+
+        .content {
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .result-input .indicator {
+            color: #1976d2;
+        }
+
+        .result-input .indicator::after {
+            content: ">>";
+        }
+
+        .result-output {
+            background: #a5d6a7;
+        }
+
+        .result-output .indicator {
+            color: #388e3c;
+        }
+
+        .result-output .indicator::after {
+            content: "<-";
+        }
+
+        .result-error {
+            background: #ef9a9a;
+        }
+
+        .result-error .indicator {
+            color: #d32f2f;
+        }
+
+        .result-error .indicator::after {
+            content: "!!";
+        }
+
+        .result-info {
+            background: #eeeeee;
+        }
+
+        .result-info .indicator::after {
+            content: "!";
+        }
+
+        .result-actions {
+            position: absolute;
+            font-size: 80%;
+            top: .2em;
+            right: .2em;
+            opacity: .7;
+            user-select: none;
+        }
+
+        .result-actions a {
+            margin-left: .5em;
+        }
+
+        @keyframes resultin {
+            0% {
+                opacity: 0;
+                transform: scale(.7);
+            }
+        }
+
+        #input-btn {
+            margin-top: .3em;
+        }
+
+        @media only screen and (min-width: 500px) {
+            #inputbox {
+                display: flex;
+                align-items: stretch;
+            }
+
+            #input {
+                flex: 1;
+            }
+
+            #input-btn {
+                width: 5em;
+                margin: .1em;
+            }
+        }
+    </style>
+</head>
+
+<body class="contentouter">
+    <div class="content" id="resultouter">
+    </div>
+    <div class="box bottombar" id="inputbox">
+        <textarea id="input" rows="3" spellcheck="false"></textarea>
+        <div class="btn" id="input-btn">Run</div>
+    </div>
+    <script src="../serviceWorker.js"></script>
+    <script>
+        'use strict';
+
+        function byId(id) {
+            return document.getElementById(id);
+        }
+
+        function ui_run() {
+            var alg = window.Algebrite;
+            var viewInput = byId('input');
+            var input = viewInput.value;
+            var output;
+            var err = false;
+
+            if (input.length == 0) return;
+
+            try {
+                if (alg === undefined) throw new Error('Algebrite is not ready.');
+                output = alg.run(input);
+
+                // TODO
+                if (output.indexOf('Stop: ') != -1) err = true;
+
+                viewInput.value = '';
+            } catch (e) {
+                output = '' + e;
+                err = e;
+            }
+            window.lastOutout = output;
+            console.log('output:', output);
+
+            appendResult([
+                {
+                    tag: 'div.result-actions',
+                    child: [
+                        createAction('Delete', function (e) {
+                            e.target.parentElement.parentElement.remove();
+                        }),
+                        createAction('Edit', function (e) {
+                            viewInput.value = e.target.parentElement.parentElement.childNodes[1].textContent;
+                            viewInput.focus();
+                        })
+                    ]
+                },
+                createInner('input', input),
+                createInner(err ? 'error' : 'output', output)
+            ]);
+        }
+
+        byId('input-btn').addEventListener('click', ui_run);
+        byId('input').addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && (e.keyCode == 13 || e.keyCode == 10)) {
+                ui_run();
+            }
+        });
+
+        function init() {
+            var info = appendResult(createInner('info', [
+                'Powered by ',
+                { tag: 'a', href: 'http://algebrite.org/', textContent: 'Algebrite' },
+                ' (',
+                { tag: 'a', href: 'http://algebrite.org/docs/latest-stable/reference.html', textContent: 'function reference' },
+                ')',
+                sw.buildDOM({
+                    tag: 'div.result-inner.result-info',
+                    child: [
+                        '(Engine state: ',
+                        window.viewLoading = sw.buildDOM('loading...'),
+                        ')'
+                    ]
+                })
+            ]));
+        }
+
+        function casloaded() {
+            window.viewLoading.textContent = 'ready';
+        }
+
+        function caserror() {
+            window.viewLoading.textContent = 'failed!';
+        }
+
+        function createInner(type, content) {
+            return {
+                tag: 'div.result-inner.result-' + type,
+                child: [{
+                    tag: 'div.indicator'
+                }, {
+                    tag: 'div.content',
+                    child: content
+                }]
+            };
+        }
+
+        function createAction(text, onclick) {
+            return {
+                tag: 'a',
+                textContent: text,
+                href: 'javascript:;',
+                onclick: onclick
+            };
+        }
+
+        function appendResult(inner) {
+            var dom = sw.buildDOM({
+                tag: 'div.result',
+                child: inner
+            });
+            var outer = byId('resultouter');
+            outer.insertBefore(dom, outer.firstChild);
+            return dom;
+        }
+
+        init();
+    </script>
+    <script onload="casloaded()" onerror="caserror()" src="algebrite.min.js" async></script>
+</body>
+
+</html>

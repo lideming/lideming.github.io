@@ -175,8 +175,8 @@
         document.body.hidden = true;
         style.onload = function () {
             console.log('blog style loaded.');
-            setTimeout(function () {document.body.hidden = false;}, 0);
-            
+            setTimeout(function () { document.body.hidden = false; }, 0);
+
         };
         style.onerror = function () {
             document.body.hidden = false;
@@ -310,6 +310,8 @@
 
     var buildDomCore = function (obj, ttl) {
         if (ttl-- < 0) throw new Error('ran out of TTL');
+        if (typeof (obj) === 'string') return document.createTextNode(obj);
+        if (Node && obj instanceof Node) return obj;
         var node = createElementFromTag(obj.tag);
         for (var key in obj) {
             if (key != 'tag' && obj.hasOwnProperty(key)) {
