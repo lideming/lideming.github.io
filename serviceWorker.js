@@ -262,6 +262,9 @@
             this.onRender && this.onRender(data);
             if (!dontSave && this.key) localStorage.setItem(this.key, this.type.serialize(data));
         };
+        SettingItem.prototype.get = function () {
+            return this.data;
+        };
         SettingItem.prototype.toggle = function () {
             if (this.type != SettingItem.types.bool) throw new Error('only for bool type');
             this.set(!this.data);
@@ -280,6 +283,10 @@
             str: {
                 serialize: function (x) { return x; },
                 deserilize: function (x) { return x; }
+            },
+            json: {
+                serialize: function (x) { return JSON.stringify(x); },
+                deserilize: function (x) { return JSON.parse(x); }
             }
         };
         return SettingItem;

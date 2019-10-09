@@ -30,7 +30,7 @@
             border: none;
             border-radius: .4em;
             padding: .3em;
-            min-height: 3em;
+            min-height: 4em;
         }
 
         a {
@@ -127,7 +127,10 @@
 
         .content {
             display: inline-block;
+            max-width: 100%;
             vertical-align: middle;
+            word-wrap: break-word;
+            overflow-x: auto;
         }
 
         .result-input .indicator {
@@ -227,9 +230,10 @@
             return document.getElementById(id);
         }
 
+        var viewInput = byId('input');
+
         function ui_run() {
             var alg = window.Algebrite;
-            var viewInput = byId('input');
             var input = viewInput.value;
             var output;
             var err = false;
@@ -251,12 +255,17 @@
             window.lastOutout = output;
             console.log('output:', output);
 
-            appendResult([
+            appendResult(input, output, err ? 'error' : 'output');
+        }
+
+        function appendResult(input, output, type, histObj) {
+            appendBox([
                 {
                     tag: 'div.result-actions',
                     child: [
                         createAction('Delete', function (e) {
                             e.target.parentElement.parentElement.remove();
+                            histDel(histObj);
                         }),
                         createAction('Edit', function (e) {
                             viewInput.value = e.target.parentElement.parentElement.childNodes[1].textContent;
@@ -265,8 +274,9 @@
                     ]
                 },
                 createInner('input', input),
-                createInner(err ? 'error' : 'output', output)
+                createInner(type, output)
             ]);
+            if (!histObj) histPush(histObj = { input, output, type });
         }
 
         byId('input-btn').addEventListener('click', ui_run);
@@ -277,7 +287,8 @@
         });
 
         function init() {
-            var info = appendResult(createInner('info', [
+            histRestore();
+            var info = appendBox(createInner('info', [
                 'Powered by ',
                 { tag: 'a', href: 'http://algebrite.org/', textContent: 'Algebrite' },
                 ' (',
@@ -323,14 +334,44 @@
             };
         }
 
-        function appendResult(inner) {
+        function appendBox(inner) {
             var dom = sw.buildDOM({
                 tag: 'div.result',
                 child: inner
             });
             var outer = byId('resultouter');
             outer.insertBefore(dom, outer.firstChild);
+            outer.scrollTo(0, 0);
             return dom;
+        }
+
+        var hist = [];
+        var siHist = new sw.SettingItem('cas-hist', 'json', hist);
+        hist = siHist.get();
+
+        function histRestore() {
+            if (hist.length) {
+                hist.forEach(function (x) {
+                    appendResult(x.input, x.output, x.type, x);
+                });
+                var n = hist.length;
+                appendBox(createInner('info', 'Loaded ' + n + ' result' + (n > 1 ? 's' : '') + ' from history'));
+            }
+        }
+
+        function histPush(obj) {
+            hist.push(obj);
+            if (hist.length > 20) {
+                hist.shift();
+            }
+            siHist.set(hist);
+        }
+
+        function histDel(obj) {
+            var i = hist.indexOf(obj);
+            if (i == -1) return;
+            hist.splice(i, 1);
+            siHist.set(hist);
         }
 
         init();
