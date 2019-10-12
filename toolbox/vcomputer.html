@@ -8,33 +8,154 @@
     <title>Vcomputer</title>
     <style>
         body {
-            font-family: monospace;
+            font-family: sans-serif;
+            position: relative;
+            margin: 10px;
+            font-size: 16px;
         }
 
-        #memview {
+        textarea {
+            resize: vertical;
+        }
+
+        textarea,
+        input,
+        .memview {
+            font-family: monospace;
+            padding: .6em;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .box {
+            position: relative;
+            color: black;
+            background: #bdbdbd;
+            padding: .3em;
+            margin: .5em .3em;
+            box-shadow: .2em .2em .5em .1em rgba(127, 127, 127, .4);
+            border-radius: .5em;
+        }
+
+        .boxrow {
+            margin: .3em;
+        }
+
+        .memview {
+            overflow: auto;
+            color: black;
+            background: white;
             white-space: pre;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: baseline;
+            text-align: center;
+            transition: background-color .3s;
+            padding: .5em;
+            min-width: 3em;
+            line-height: 1.5em;
+            background: hsl(207, 90%, 54%);
+            color: white;
+            box-shadow: 0 0 .3em gray;
+            cursor: pointer;
+            -ms-user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transition: all .05s;
+            background: hsl(207, 90%, 61%);
+        }
+
+        .btn.btn-down,
+        .btn:active {
+            transition: background-color .05s;
+            background: hsl(207, 90%, 70%);
+            box-shadow: 0 0 .1em gray;
+        }
+
+        .btnbox .btn {
+            margin: .2em;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        @media only screen and (min-width: 800px) {
+            body {
+                text-align: center;
+            }
+
+            .resp-left,
+            .resp-right {
+                text-align: initial;
+                display: inline-block;
+                box-sizing: border-box;
+                vertical-align: middle;
+                height: 100%;
+                margin: 0;
+            }
+
+            .resp-left {
+                width: calc(66% - 1em);
+            }
+
+            .resp-right {
+                width: 33%;
+            }
+
+            .btn {
+                padding: .2em;
+            }
+
+            textarea,
+            input,
+            .memview {
+                padding: .4em;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div id="memview"></div>
-    <div style="margin-top: 1em">
-        <div>
-            <button onclick="ui_write()">Write</button>
-            <button onclick="ui_run(true)">Run (step)</button>
-            <button onclick="ui_run()">Run</button>
-            <button onclick="ui_reset()">Reset</button>
-            <button onclick="ui_reset(true)">Reset (keep mem)</button>
+    <div class="resp-left">
+        <div class="box">
+            <div class="boxrow">Reg:
+                <div class="memview" id="regview"></div>
+            </div>
+            <div class="boxrow">Mem:
+                <div class="memview" id="memview"></div>
+            </div>
+            <div class="boxrow">State: <span id="stateview"></span></div>
         </div>
-        Write Parameters:
-        <div>
-            Offset (HEX):
-            <input id="write-offset" type="text" value="00">
+        <div class="box btnbox boxrow">
+            <div class="btn" onclick="ui_run(true)">Next Step</div>
+            <div class="btn" onclick="ui_run()">Run</div>
+            <div class="btn" onclick="ui_reset(true)">Reset Reg</div>
+            <div class="btn" onclick="ui_reset()">Reset All</div>
         </div>
-        <div>
-            Content (HEX):<br/>
-            <textarea id="write-content" cols="40" rows="5"></textarea>
+    </div>
+    <div class="resp-right">
+        <div class="box">
+            <div class="boxrow">
+                Content (HEX):<br />
+                <textarea id="write-content" cols="40" rows="6"></textarea>
+            </div>
+            <div class="boxrow">
+                Offset (HEX):<br />
+                <input id="write-offset" type="text" value="00">
+            </div>
+            <div class="btnbox boxrow" style="text-align: right;">
+                <span id="write-info"></span>
+                <div class="btn" onclick="ui_write()">Write</div>
+            </div>
         </div>
     </div>
     <script>
@@ -150,14 +271,16 @@
         };
 
         var comp = new Vcomp();
+        var regview = document.getElementById('regview');
         var memview = document.getElementById('memview');
+        var stateview = document.getElementById('stateview');
 
         function render() {
             var reg = comp.regs;
             var mem = comp.mem;
-            memview.textContent = 'REG:\n' + u8arrtohex(reg, true)
-                + '\n\nMEM:\n' + u8arrtohex(mem, true)
-                + '\nSTAT: ' + comp.state;
+            regview.textContent = u8arrtohex(reg, true);
+            memview.textContent = u8arrtohex(mem, true)
+            stateview.textContent = comp.state;
         }
 
         function u8tohex(u8) {
@@ -194,14 +317,24 @@
                     last = r << 4;
                 }
             }
+            if (last !== -1) throw new Error('a single hex digit left');
             return Uint8Array.from(arr);
         }
 
         function ui_write() {
-            var pos = parseInt('0x' + document.getElementById('write-offset').value);
-            var content = parsehex(document.getElementById('write-content').value);
-            // console.log("ui_write:", { pos, content });
-            comp.writeMemArr(pos, content);
+            var info;
+            try {
+                var pos = parseInt('0x' + document.getElementById('write-offset').value);
+                if (isNaN(pos)) throw new Error('Offset is invalid');
+                if (pos < 0 || pos > 0xFF) throw new Error('Offset is out of range');
+                var content = parsehex(document.getElementById('write-content').value);
+                // console.log("ui_write:", { pos, content });
+                comp.writeMemArr(pos, content);
+                info = "wrote " + content.length + " bytes at " + pos.toString(16);
+            } catch (error) {
+                info = '' + error;
+            }
+            document.getElementById('write-info').textContent = info;
             render();
         }
 
