@@ -108,6 +108,13 @@
             border-radius: .5em;
             overflow: hidden;
             animation: resultin .3s;
+            /* transition: filter .3s; */
+        }
+
+        @media (hover: hover) {
+            .result:hover {
+                filter: brightness(1.07);
+            }
         }
 
         .result-inner {
@@ -178,12 +185,17 @@
             font-size: 80%;
             top: .2em;
             right: .2em;
-            opacity: .7;
             user-select: none;
         }
 
         .result-actions a {
+            opacity: .7;
             margin-left: .5em;
+        }
+
+        .result-actions a:hover {
+            opacity: 1;
+            color: black;
         }
 
         @keyframes resultin {
@@ -198,6 +210,10 @@
         }
 
         @media only screen and (min-width: 500px) {
+            body {
+                margin: 0 calc(10vw - .1 * 500px);
+            }
+
             #inputbox {
                 display: flex;
                 align-items: stretch;
