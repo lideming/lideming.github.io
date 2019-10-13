@@ -13,49 +13,130 @@
 		<h1 class="title">Vcomputer</h1>
 		<p class="date">2019-09-26</p>
 		<div lang="zh">
-			<p>前几天上了第一节计算机科学导论课，使用的教材是<a class="extlink" href="https://book.douban.com/subject/26779097/">《计算机科学导论——思想与方法》</a>，书中给出了“一个取名为 Vcomputer 的基于冯·诺伊曼的计算机器”。</p>
-			<p>感觉这个机器简单又有趣，于是想用 Web 前端技术实现一个 Vcomputer 虚拟机。</p>
+			<p>前几天上了第一节计算机科学导论课，使用的教材是《计算机科学导论——思想与方法》（<a class="extlink" href="https://book.douban.com/subject/26779097/">豆瓣</a> / <a class="extlink" href="https://item.jd.com/11026233095.html">京东</a> / <a class="extlink" href="http://product.dangdang.com/1200896476.html">当当</a>），书中给出了“一个取名为 Vcomputer 的基于冯·诺伊曼的计算机器”。</p>
 
 			<h2>基本结构</h2>
-			<p>这个机器有 16 个通用寄存器（每个 8 位）、一个程序计数器、一个指令寄存器以及一块容量“高达” 256 字节的主内存。</p>
+			<ul>
+				<li>
+					处理器：
+					<ul>
+						<li>16 个通用寄存器（8 位）：R0, R1, R2 ... RE, RF</li>
+						<li>程序计数器（8 位）</li>
+						<li>指令寄存器（16 位）</li>
+					</ul>
+				</li>
+				<li>内存：
+					<ul><li>一块容量“高达” 256 字节的主内存</li></ul>
+				</li>
+			</ul>
 
 			<h2>指令集</h2>
-			<p>这个机器的指令是固定长度的，每条指令 2 字节（16 位），前 4 位为操作码，后 12 位为操作数（其中包含一个或两个参数）。</p>
+			<p>这个机器使用固定长度的指令，每条指令 2 字节（16 位），前 4 位为操作码，后 12 位为操作数（其中包含一个或两个参数）。</p>
 			<p>下面列出这个机器的指令集：</p>
-			<p>第一列是用 <ruby>HEX<rp>(</rp><rt>十六进制</rt><rp>)</rp></ruby> 表示的指令格式，1 位 HEX 
-				恰好对应 4 位 <ruby>BIN<rp>(</rp><rt>二进制</rt><rp>)</rp></ruby>，因此每条指令可用 4 位 HEX 表示；
-				<br/>第二列是它的汇编形式；
-				<br/>第三列是指令描述。</p>
+			<table>
+				<tr>
+					<th>机器码*</th>
+					<th>汇编</th>
+					<th>描述</th>
+				</tr>
+				<tr>
+					<td><code>1RXY</code></td>
+					<td><code>Load   R, [XY]</code></td>
+					<td>将主存中地址 XY 的内容读取到寄存器 R</td>
+				</tr>
+				<tr>
+					<td><code>2RXY</code></td>
+					<td><code>Load   R, XY</code></td>
+					<td>将数 XY 写入到寄存器 R</td>
+				</tr>
+				<tr>
+					<td><code>3RXY</code></td>
+					<td><code>Store  R, [XY]</code></td>
+					<td>将寄存器 R 的值写入到地址 XY</td>
+				</tr>
+				<tr>
+					<td><code>40RS</code></td>
+					<td><code>Mov    R, S</code></td>
+					<td>将寄存器 R 的值复制到寄存器 S 中</td>
+				</tr>
+				<tr>
+					<td><code>5RST</code></td>
+					<td><code>Add    R, S, T</code></td>
+					<td>将寄存器 S 与 T 的数值（补码）相加，结果存入到寄存器 R 中</td>
+				</tr>
+				<tr>
+					<td><code>6R0X</code></td>
+					<td><code>Shl    R, X</code></td>
+					<td>将寄存器 R 中的数左移 X 位，用 0 填充腾空的位</td>
+				</tr>
+				<tr>
+					<td><code>7R00</code></td>
+					<td><code>Not    R</code></td>
+					<td>将寄存器 R 中的数按位取反</td>
+				</tr>
+				<tr>
+					<td><code>8RXY</code></td>
+					<td><code>Jmp    R, XY</code></td>
+					<td>如果寄存器 R 与寄存器 0 的值相同，将程序计数器的值设为 XY</td>
+				</tr>
+				<tr>
+					<td><code>9000</code></td>
+					<td><code>Halt</code></td>
+					<td>停机</td>
+				</tr>
+			</table>
+			<p>* <ruby>HEX<rp>(</rp><rt>十六进制</rt><rp>)</rp></ruby> 表示的机器码格式，1 位 HEX 
+				恰好对应 4 位 <ruby>BIN<rp>(</rp><rt>二进制</rt><rp>)</rp></ruby>，因此每条指令的机器码可用 4 位 HEX 表示。</p>
 
-			<pre class="code">
-1RXY    Load  R, [XY]    将主存中地址 XY 的内容读取到寄存器 R
-2RXY    Load  R, XY      将数 XY 写入到寄存器 R
-3RXY    Store R, [XY]    将寄存器 R 的值写入到地址 XY
-40RS    Mov   R, S       将寄存器 R 的值复制到寄存器 S 中
-5RST    Add   R, S, T    将寄存器 S 与 T 的数值（补码）相加，结果存入到寄存器 R 中
-6R0X    Shl   R, X       将寄存器 R 中的数左移 X 位，用 0 填充腾空的位
-7R00    Not   R          将寄存器 R 中的数按位取反
-8RXY    Jmp   R, XY      如果寄存器 R 与寄存器 0 的值相同，将程序计数器的值设为 XY
-9000    Halt             停机
-</pre>
-
-			<h2>实现</h2>
+			<h2>虚拟机实现</h2>
+			<p>这是 Vcomputer 虚拟机的 JavaScript 实现，可以在网页中运行。</p>
 			<p>进行中：<a href="../toolbox/vcomputer.html">Vcomputer</a></p>
-			<p>基本功能已完成。（待完成：界面美化、状态编辑器、存取操作可视化……）</p>
-
+			<p>待完成：
+				<ul>
+					<li><del>基本功能</del></li>
+					<li><del>界面美化</del></li>
+					<li>状态编辑器</li>
+					<li>存取操作可视化</li>
+					<li>汇编器 / 反汇编器</li>
+				</ul>
+			</p>
 			<h2>程序示例</h2>
 			<p>(To be done)</p>
+			<p><del>（因为我还没有写过有用的 Vcomputer 程序）</del></p>
 
 			<h2>扩展</h2>
 			<p>这个机器的指令集可能太少了，特别是如果你需要标准输入输出或者绘图…… 甚至是扩展物理地址空间？</p>
 			<p>下面是一些瞎想的扩展指令：</p>
-			<pre class="code">
-AM0R    Print M, R       将寄存器 R 的值作为数字（M 为 0 时）或作为字符（M 为 1 时）输出
-BM0R    Input M, R       请求用户输入数值或字符（取决于 M），结果存入寄存器 R
-CVXY    Draw  V, X, Y    更改画布里一个像素的颜色，三个寄存器 V、X、Y 分别提供颜色、横坐标、纵坐标
-...
-F???    ?????            为更长的指令预留
-</pre>
+			<table>
+				<tr>
+					<th>机器码*</th>
+					<th>汇编</th>
+					<th>描述</th>
+				</tr>
+				<tr>
+					<td><code>AM0R</code></td>
+					<td><code>Print M, R</code></td>
+					<td>将寄存器 R 的值作为数字（M 为 0 时）或作为字符（M 为 1 时）输出</td>
+				</tr>
+				<tr>
+					<td><code>BM0R</code></td>
+					<td><code>Input M, R</code></td>
+					<td>请求用户输入数值或字符（取决于 M），结果存入寄存器 R</td>
+				</tr>
+				<tr>
+					<td><code>CVXY</code></td>
+					<td><code>Draw  V, X, Y</code></td>
+					<td>更改画布里一个像素的颜色，三个寄存器 V、X、Y 分别提供颜色、横坐标、纵坐标</td>
+				</tr>
+				<tr>
+					<td colspan="3">...</td>
+				</tr>
+				<tr>
+					<td><code>F???</code></td>
+					<td>?????</td>
+					<td>为更长的指令预留</td>
+				</tr>
+			</table>
 			<p>（目前并没有实现这些指令。）</p>
 		</div>
 	</div>

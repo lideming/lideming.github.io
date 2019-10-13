@@ -19,6 +19,10 @@ h2 {
     padding: .5em 0;
 }
 
+h2 {
+    border-bottom: .15em solid #1976d2;
+}
+
 .title {
     text-align: center;
 }
@@ -31,6 +35,7 @@ p,
 .plike,
 ul,
 li,
+table,
 .code {
     margin: 1em 0;
 }
@@ -42,6 +47,30 @@ a {
 
 a:hover {
     color: #90beff;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+table, th, td {
+    border: 1px solid black;
+}
+
+.dark table, .dark th, .dark td {
+    border: 1px solid gray;
+}
+
+th {
+    background: #bbdefb;
+}
+
+.dark th {
+    background: #0d47a1;
+}
+
+th, td {
+    padding: .3em .6em;
 }
 
 .date {
