@@ -27,6 +27,25 @@
             width: 100%;
         }
 
+        .memaddr {
+            display: inline-block;
+            color: #1e88e5;
+            background: #eee;
+            margin: .1em .2em;
+            line-height: 1em;
+        }
+
+        .memunit {
+            display: inline-block;
+            margin: .1em .1em;
+            line-height: 1em;
+            color: #aaa;
+        }
+
+        .memunit.nonzero {
+            color: black;
+        }
+
         .box {
             position: relative;
             color: black;
@@ -46,6 +65,14 @@
             color: black;
             background: white;
             white-space: pre;
+        }
+
+        .memview-inline {
+            display: inline-block;
+            font-family: monospace;
+            padding: .3em;
+            color: black;
+            background: white;
         }
 
         .btn {
@@ -130,6 +157,11 @@
             <div class="boxrow">Reg:
                 <div class="memview" id="regview"></div>
             </div>
+            <div class="boxrow">PC:
+                <div class="memview-inline" id="regview-pc"></div>
+                CIR:
+                <div class="memview-inline" id="regview-cir"></div>
+            </div>
             <div class="boxrow">Mem:
                 <div class="memview" id="memview"></div>
             </div>
@@ -142,6 +174,7 @@
             <div class="btn" onclick="ui_reset()">Reset All</div>
         </div>
     </div>
+    <!-- TODO: an unwanted whitespace is here -->
     <div class="resp-right">
         <div class="box">
             <div class="boxrow">
@@ -158,6 +191,7 @@
             </div>
         </div>
     </div>
+    <script onload="sw.check(true)" src="../serviceWorker.js"></script>
     <script>
         'use strict';
         var Vcomp = function () {
@@ -172,7 +206,8 @@
 
             var mem = new Uint8Array(256);
 
-            var state = '';
+            var READY = 'ready';
+            var state = READY;
 
             Object.defineProperty(this, 'regs', { get: () => regs });
             Object.defineProperty(this, 'cir', { get: () => cir });
@@ -203,10 +238,11 @@
             };
 
             var tick = this.tick = function () {
-                state = '';
+                state = READY;
                 var pc = readReg(pcreg);
                 var cir0 = readMem(pc);
                 var cir1 = readMem(pc + 1);
+                cir = (cir0 << 8) | cir1;
                 writeReg(cirreg, cir0);
                 writeReg(cirreg + 1, cir1);
                 var incrPc = true;
@@ -260,46 +296,81 @@
             var run = this.run = function () {
                 do {
                     tick();
-                } while (!state);
+                } while (state == READY);
             };
 
             var reset = this.reset = function (keepMem) {
                 regs.fill(0);
-                state = '';
+                state = READY;
                 if (!keepMem) mem.fill(0);
             };
         };
 
         var comp = new Vcomp();
-        var regview = document.getElementById('regview');
-        var memview = document.getElementById('memview');
+
+        var MemView = function (container, withAddr) {
+            if (typeof (container) === 'string') container = document.getElementById(container);
+            this.container = container;
+            var units = this.units = null;
+            this.createViews = function (len) {
+                units = this.units = [];
+                container.innerHTML = '';
+                for (var i = 0; i < len; i++) {
+                    if (withAddr && i % 4 == 0) {
+                        container.appendChild(sw.buildDOM({
+                            tag: 'span.memaddr',
+                            textContent: u8tohex(i)
+                        }));
+                    }
+                    var u = sw.buildDOM({
+                        tag: 'span.memunit'
+                    });
+                    units.push(u);
+                    container.appendChild(u);
+                    if (i % 16 == 15) {
+                        container.appendChild(sw.buildDOM('\n'));
+                    }
+                }
+            };
+
+            this.render = function (arr, begin, len) {
+                if (begin === undefined) begin = 0;
+                if (len === undefined) len = arr.length - begin;
+                if (!units || units.length != len)
+                    this.createViews(len);
+                for (var i = 0; i < len; i++) {
+                    var val = arr[begin + i];
+                    var u = units[i];
+                    if (u.d_val === val) continue;
+                    u.d_val = val;
+                    var valhex = u8tohex(val);
+                    u.textContent = valhex;
+                    u.title = '[' + u8tohex(i) + '] = 0x' + valhex + ' = ' + val;
+                    u.className = val ? 'memunit nonzero' : 'memunit';
+                }
+            };
+        };
+
+        var regview = new MemView('regview', true);
+        var regviewpc = new MemView('regview-pc');
+        var regviewcir = new MemView('regview-cir');
+        var memview = new MemView('memview', true);
         var stateview = document.getElementById('stateview');
 
         function render() {
             var reg = comp.regs;
             var mem = comp.mem;
-            regview.textContent = u8arrtohex(reg, true);
-            memview.textContent = u8arrtohex(mem, true)
+            regview.render(reg, 0, 16);
+            regviewpc.render(reg, 18, 1);
+            regviewcir.render(reg, 16, 2);
+            memview.render(mem);
             stateview.textContent = comp.state;
         }
 
         function u8tohex(u8) {
+            if (typeof(u8) !== 'number') return 'na';
             var hex = '0123456789ABCDEF';
-            return hex[u8 >> 4] + hex[u8 & 0x0F];
-        }
-
-        function u8arrtohex(u8arr, format) {
-            var hex = '0123456789ABCDEF';
-            var str = '';
-            for (var i = 0; i < u8arr.length; i++) {
-                var byte = u8arr[i];
-                str += u8tohex(byte);
-                if (format) {
-                    if (i % 16 == 15) str += '\n';
-                    else if (i % 4 == 3) str += ' ';
-                }
-            }
-            return str;
+            return hex[(u8 & 0xF0) >> 4] + hex[u8 & 0x0F];
         }
 
         function parsehex(str) {
