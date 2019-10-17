@@ -164,6 +164,26 @@
             return map;
         }
 
+        function u8tohex(u8) {
+            if (typeof(u8) !== 'number') return 'na';
+            var hex = '0123456789ABCDEF';
+            return hex[(u8 & 0xF0) >> 4] + hex[u8 & 0x0F];
+        }
+
+        function u8arrtohex(u8arr, format) {
+            var hex = '0123456789ABCDEF';
+            var str = '';
+            for (var i = 0; i < u8arr.length; i++) {
+                var byte = u8arr[i];
+                str += u8tohex(byte);
+                if (format) {
+                    if (i % 16 == 15) str += '\n';
+                    else if (i % 4 == 3) str += ' ';
+                }
+            }
+            return str;
+        }
+
         console.log('and open source file please. (no docs)');
 
     </script>
