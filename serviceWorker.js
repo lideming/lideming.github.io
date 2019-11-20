@@ -160,7 +160,13 @@
             }
         }
     };
-    sw.check = function (autoEnable) {
+    sw.check = function () {
+        var task = new Promise(function (resolve) { setTimeout(resolve, 1000); }).then(function () {
+            setTimeout(sw.checkNow, 500, args);
+        });
+        var args = Array.from(arguments);
+    };
+    sw.checkNow = function (autoEnable) {
         if (swNotSupported) {
             sw.toggle();
             return;
