@@ -71,7 +71,7 @@ code:not(.code) {
 }
 
 .presentation {
-    border: solid #ccc 2px;
+    /* border: solid #ccc 2px; */
     position: relative;
     overflow: hidden;
     height: 100%;
@@ -188,4 +188,22 @@ code:not(.code) {
     left: .5em;
     opacity: .3;
     /* font-size: 14px; */
+}
+
+.ctrl {
+    position: fixed;
+    right: .3em;
+    bottom: .3em;
+}
+
+.ctrl .ctrlbtn {
+    margin: 0 .3em;
+    display: inline-block;
+    width: 2em;
+    background: #ccc;
+    opacity: .3;
+    text-align: center;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
 }

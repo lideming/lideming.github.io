@@ -2968,6 +2968,13 @@ int *a, *b, *c;
         p.init();
         p.useRouter();
         document.body.appendView(p);
+        document.body.appendChild(buildDOM({
+            tag: 'div.ctrl',
+            child: [
+                { tag: 'div.ctrlbtn', text: '<', onclick: () => p.nextStep(-1) },
+                { tag: 'div.ctrlbtn', text: '>', onclick: () => p.nextStep() },
+            ]
+        }));
         window['hljs'].initHighlighting();
     };
     window.addEventListener('load', load);
