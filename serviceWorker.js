@@ -33,6 +33,9 @@
         });
 
         self.addEventListener('fetch', function (event) {
+            clients.get(event.clientId).then(function (client) {
+                client.postMessage('fetch(): ' + event.request.url);
+            });
             event.respondWith(caches.match(event.request).then(function (response) {
                 if (response !== undefined) {
                     // when it's cached, return the cached response and update cache.
@@ -56,6 +59,10 @@
                     });
                 }
             }));
+        });
+
+        self.addEventListener('message', function (event) {
+            
         });
     };
 
@@ -88,6 +95,8 @@
     } else {
         swNotSupported = false;
     }
+
+    if (sw.notSupport) console.log('sw not supported: ' + sw.notSupport);
 
     var tryCall = function (x, args) { x && x.apply(this, args); };
     var stateChanged = function (text) {
@@ -122,7 +131,12 @@
     };
     var updateState = function (sw) {
         stateChanged(sw.state + (newVersionState ? ' (new version: ' + newVersionState + ')' : ''));
-    }
+    };
+    var startListen = function () {
+        navigator.serviceWorker.addEventListener('message', function (e) {
+            console.log('message from sw: ', e);
+        });
+    };
     sw.toggle = function (force) {
         if (swNotSupported) {
             checkReg(null);
@@ -146,11 +160,18 @@
             }
         }
     };
-    sw.check = function (autoEnable) {
+    sw.check = function () {
+        var task = new Promise(function (resolve) { setTimeout(resolve, 1000); }).then(function () {
+            setTimeout(sw.checkNow, 500, args);
+        });
+        var args = Array.from(arguments);
+    };
+    sw.checkNow = function (autoEnable) {
         if (swNotSupported) {
             sw.toggle();
             return;
         }
+        startListen();
         return getAndCheck().then(function (r) {
             if (autoEnable && !r && localStorage.getItem('noServiceWorker') != 'true') {
                 console.log('automatically enabling service worker...');
@@ -341,6 +362,6 @@
 
     sw.buildDOM = function (obj) {
         return buildDomCore(obj, 32);
-    }
+    };
 
 })();

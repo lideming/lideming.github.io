@@ -723,13 +723,16 @@
 
             var SoundFX = function () {
                 var error = null;
+                /** @type{AudioContext} */
                 var actx = null;
                 var lastBeepEnd = null;
-                this.beep = function (final) {
+                this.beep = function (final, offset) {
                     if (error) return;
                     try {
                         if (!actx) actx = new AudioContext();
-                        var curTime = actx.currentTime;
+                        if (!offset) offset = 0;
+                        offset /= 1000;
+                        var curTime = actx.currentTime + offset;
                         if (lastBeepEnd !== null && curTime < lastBeepEnd) {
                             console.log('skipped a beep (' + final + ')');
                             return;
@@ -745,7 +748,7 @@
                         osc.frequency.value = final ? (784 * 2) : 784;
                         osc.type = 'square';
                         osc.connect(gain);
-                        osc.start(0);
+                        osc.start(curTime);
                         osc.stop(lastBeepEnd = curTime + duration);
                     } catch (e) {
                         error = e;
@@ -754,8 +757,8 @@
             };
             this.sfx = new SoundFX();
             this.playSoundFX = false;
-            var beep = (final) => {
-                if (this.playSoundFX) this.sfx.beep(final);
+            var beep = (final, offset) => {
+                if (this.playSoundFX) this.sfx.beep(final, offset);
             };
 
             this.scarier = true;
@@ -787,6 +790,7 @@
 
                 if (mode != Modes.RUNNING) enterMode(Modes.RUNNING, () => this.stopRun());
                 var scarier = this.scarier;
+                var lastStepWaiting = !scarier || (rng.getRandomInt() % 2);
                 var slow1 = 16;
                 var slow2 = 4;
                 if (scarier) {
@@ -796,8 +800,7 @@
                 console.log('slow1=' + slow1 + ' slow2=' + slow2);
                 var update = () => {
                     steps--;
-                    if (steps > 0 || (scarier && steps == 0 && (rng.getRandomInt() % 2))) {
-                        beep(false);
+                    if (steps > 0 || (steps == 0 && lastStepWaiting)) {
                         this.next();
                         var timeout = 30;
                         if (steps < slow1) {
@@ -807,9 +810,9 @@
                             timeout *= Math.pow(1.2, slow2 - steps);
                         }
                         if (steps == 0) timeout *= .6 + randomOffsetF(.2);
+                        beep(steps <= 1 && steps != lastStepWaiting, timeout);
                         running = setTimeout(update, timeout);
                     } else {
-                        beep(true);
                         console.log("final", cur);
                         if (steps < 0)
                             this.setActive(cur, true);
