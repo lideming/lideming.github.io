@@ -2865,7 +2865,7 @@ void printChars(char *chars, int n)
 
 // 我们需要这样调用它：
 printChars(arr, 5);
-printChars({'a', 'b', 'c'}, 3);
+printChars((char[]){'a', 'b', 'c'}, 3);
 // 输出：
 // hello
 // abc
@@ -2911,7 +2911,7 @@ int main () {
         jsx(Scene, { title: "Function Pointer", centerContent: true },
             jsx("h2", null, "\u51FD\u6570\u6307\u9488"),
             jsx(Code, null, `
-int *(pFunc)(int, int);
+int (*pFunc)(int, int);
 `),
             jsx(ExpandV, null,
                 jsx("h2", null, "\u60F3\u5B66\u7684\u5355\u72EC\u627E\u6211"))),
@@ -2941,13 +2941,10 @@ int *a, *b, *c;
             this.onSwipe = new Callbacks();
         }
         handleTouchMove(ev) {
-            if (!this.xDown || !this.yDown) {
+            if (this.xDown == null || this.yDown == null)
                 return;
-            }
-            var xUp = ev.touches[0].clientX;
-            var yUp = ev.touches[0].clientY;
-            var xDiff = this.xDown - xUp;
-            var yDiff = this.yDown - yUp;
+            var xDiff = this.xDown - ev.touches[0].clientX;
+            var yDiff = this.yDown - ev.touches[0].clientY;
             var action = null;
             if (Math.abs(xDiff) > Math.abs(yDiff)) { // Most significant.
                 if (xDiff >= this.xThreshold) {
@@ -2972,10 +2969,15 @@ int *a, *b, *c;
             }
         }
         run() {
-            this.element.addEventListener('touchstart', function (evt) {
-                this.xDown = evt.touches[0].clientX;
-                this.yDown = evt.touches[0].clientY;
-            }.bind(this), false);
+            this.element.addEventListener('touchstart', (evt) => {
+                if (evt.touches.length > 1) {
+                    this.xDown = this.yDown = null;
+                }
+                else {
+                    this.xDown = evt.touches[0].clientX;
+                    this.yDown = evt.touches[0].clientY;
+                }
+            }, false);
             this.element.addEventListener('touchmove', this.handleTouchMove.bind(this), false);
         }
     }
