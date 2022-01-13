@@ -12,6 +12,7 @@
             text-align: center;
             font-family: monospace;
         }
+
         button {
             padding: 10px;
             margin: 10px;
@@ -22,16 +23,23 @@
 <body>
     <div class="app">
         <h1>JS Stress / Benchmark</h1>
+        <h2>CPU Stress</h2>
         <div>Iteration count: {{iterationCount}} million</div>
         <div>Iteration speed (total): {{iterationSpeed.toFixed(3)}} million/s</div>
         <div>Iteration speed (per worker): {{ !iterationSpeedPerWorker ? 'N/A' : iterationSpeedPerWorker.toFixed(3)}} million/s</div>
 
-        <h2>Workers Control</h2>
+        <h3>Workers Control</h3>
         <div>Worker count: {{workerCount}} ({{pendingCount}} pending)</div>
         <button @click="removeAllWorkers">-ALL</button>
         <button @click="removeWorker">-1</button>
         <button @click="addWorker">+1</button>
         <button @click="addCpuCountWorkers">+{{cpuCount}}</button>
+
+        <h2>Memory Stress</h2>
+        <div>Allocated Memory: {{allocatedMemory}} MB{{ memoryError && ` (${memoryError})` }}</div>
+        <button @click="clearMemory">-ALL</button>
+        <button @click="addMemory(128)">+128 MB</button>
+        <button @click="addMemory(1024)">+1024 MB</button>
     </div>
     <script>
         const { createApp, ref } = Vue;
@@ -62,6 +70,7 @@
                             pending = false;
                         }
                     });
+                    worker.postMessage({ action: 'cpu' })
                     resetCounter();
                 }
 
@@ -78,6 +87,46 @@
                     startTime = Date.now();
                     iterationCount.value = 0;
                 }
+
+                /** @type {Array<{ worker: Worker; size: number; }>} */
+                const memoryWorkers = [];
+                const allocatedMemory = ref(0);
+                const memoryError = ref('');
+                function addMemory(size) {
+                    const item = getWorker(size);
+                    item.size += size;
+                    item.worker.postMessage({
+                        action: 'mem',
+                        size,
+                    });
+                }
+                function getWorker(availableSize) {
+                    let worker = memoryWorkers.find(w => (1024 - w.size) >= availableSize);
+                    if (!worker) {
+                        worker = {
+                            worker: new Worker('./worker.js'),
+                            size: 0
+                        };
+                        worker.worker.addEventListener('message', (e) => {
+                            if (e.data.action == 'mem') {
+                                allocatedMemory.value += e.data.size;
+                            }
+                        });
+                        worker.worker.addEventListener('error', (e) => {
+                            memoryError.value = e.message;
+                        })
+                        memoryWorkers.push(worker);
+                    }
+                    return worker;
+                }
+                function clearMemory() {
+                    memoryError.value = '';
+                    allocatedMemory.value = 0;
+                    while (memoryWorkers.length) {
+                        memoryWorkers.pop().worker.terminate();
+                    }
+                }
+
 
                 return {
                     workerCount,
@@ -106,6 +155,11 @@
                         workerCount.value = 0;
                         resetCounter();
                     },
+
+                    allocatedMemory,
+                    memoryError,
+                    addMemory,
+                    clearMemory,
                 }
             }
         }).mount('.app');
