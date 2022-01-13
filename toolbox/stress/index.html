@@ -22,10 +22,12 @@
 <body>
     <div class="app">
         <h1>JS Stress / Benchmark</h1>
-        <div>Current worker (thread) count: {{workerCount}}</div>
         <div>Iteration count: {{iterationCount}} million</div>
         <div>Iteration speed (total): {{iterationSpeed.toFixed(3)}} million/s</div>
-        <div>Iteration speed (per worker): {{ !workerCount ? 'N/A' : (iterationSpeed / workerCount).toFixed(3)}} million/s</div>
+        <div>Iteration speed (per worker): {{ !iterationSpeedPerWorker ? 'N/A' : iterationSpeedPerWorker.toFixed(3)}} million/s</div>
+
+        <h2>Workers Control</h2>
+        <div>Worker count: {{workerCount}}</div>
         <button @click="removeAllWorkers">-ALL</button>
         <button @click="removeWorker">-1</button>
         <button @click="addWorker">+1</button>
@@ -50,24 +52,30 @@
                     });
                     worker.addEventListener('message', (e) => {
                         iterationCount.value++;
-                    })
+                    });
+                    resetCounter();
                 }
 
                 const iterationSpeed = ref(0);
-                let lastTime = Date.now();
-                let lastIterationCount = 0;
+                const iterationSpeedPerWorker = ref(0);
+                let startTime = Date.now();
                 setInterval(() => {
                     const now = Date.now();
-                    iterationSpeed.value = (iterationCount.value - lastIterationCount) / ((now - lastTime) / 1000);
-                    lastTime = now;
-                    lastIterationCount = iterationCount.value;
+                    iterationSpeed.value = iterationCount.value / ((now - startTime) / 1000);
+                    iterationSpeedPerWorker.value = !workerCount.value ? 0 : iterationSpeed.value / workerCount.value;
                 }, 1000);
+
+                function resetCounter() {
+                    startTime = Date.now();
+                    iterationCount.value = 0;
+                }
 
                 return {
                     workerCount,
                     cpuCount,
                     iterationCount,
                     iterationSpeed,
+                    iterationSpeedPerWorker,
                     addWorker,
                     addCpuCountWorkers() {
                         for (let i = 0; i < cpuCount; i++) {
@@ -78,6 +86,7 @@
                         if (workers.length) {
                             workers.pop().terminate();
                             workerCount.value--;
+                            resetCounter();
                         }
                     },
                     removeAllWorkers() {
