@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.26/dist/vue.global.prod.js"></script>
+    <title>JS Stress</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: monospace;
+        }
+        button {
+            padding: 10px;
+            margin: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <h1>JS Stress / Benchmark</h1>
+        <div>Current worker (thread) count: {{workerCount}}</div>
+        <div>Iteration count: {{iterationCount}} million</div>
+        <div>Iteration speed (total): {{iterationSpeed.toFixed(3)}} million/s</div>
+        <div>Iteration speed (per worker): {{ !workerCount ? 'N/A' : (iterationSpeed / workerCount).toFixed(3)}} million/s</div>
+        <button @click="removeAllWorkers">-ALL</button>
+        <button @click="removeWorker">-1</button>
+        <button @click="addWorker">+1</button>
+        <button @click="addCpuCountWorkers">+{{cpuCount}}</button>
+    </div>
+    <script>
+        const { createApp, ref } = Vue;
+        createApp({
+            setup() {
+                const workerCount = ref(0);
+                const workers = [];
+                const iterationCount = ref(0);
+                const cpuCount = navigator.hardwareConcurrency;
+                function addWorker() {
+                    const worker = new Worker('./worker.js');
+                    workers.push(worker);
+                    workerCount.value++;
+                    worker.addEventListener('error', (e) => {
+                        workers.splice(workers.indexOf(worker), 1);
+                        workerCount.value--;
+                        console.error('worker error', e);
+                    });
+                    worker.addEventListener('message', (e) => {
+                        iterationCount.value++;
+                    })
+                }
+
+                const iterationSpeed = ref(0);
+                let lastTime = Date.now();
+                let lastIterationCount = 0;
+                setInterval(() => {
+                    const now = Date.now();
+                    iterationSpeed.value = (iterationCount.value - lastIterationCount) / ((now - lastTime) / 1000);
+                    lastTime = now;
+                    lastIterationCount = iterationCount.value;
+                }, 1000);
+
+                return {
+                    workerCount,
+                    cpuCount,
+                    iterationCount,
+                    iterationSpeed,
+                    addWorker,
+                    addCpuCountWorkers() {
+                        for (let i = 0; i < cpuCount; i++) {
+                            addWorker();
+                        }
+                    },
+                    removeWorker() {
+                        if (workers.length) {
+                            workers.pop().terminate();
+                            workerCount.value--;
+                        }
+                    },
+                    removeAllWorkers() {
+                        while (workers.length) {
+                            workers.pop().terminate();
+                        }
+                        workerCount.value = 0;
+                    },
+                }
+            }
+        }).mount('.app');
+    </script>
+</body>
+
+</html>
