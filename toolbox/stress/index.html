@@ -27,7 +27,7 @@
         <div>Iteration speed (per worker): {{ !iterationSpeedPerWorker ? 'N/A' : iterationSpeedPerWorker.toFixed(3)}} million/s</div>
 
         <h2>Workers Control</h2>
-        <div>Worker count: {{workerCount}}</div>
+        <div>Worker count: {{workerCount}} ({{pendingCount}} pending)</div>
         <button @click="removeAllWorkers">-ALL</button>
         <button @click="removeWorker">-1</button>
         <button @click="addWorker">+1</button>
@@ -38,20 +38,29 @@
         createApp({
             setup() {
                 const workerCount = ref(0);
+                const pendingCount = ref(0);
                 const workers = [];
                 const iterationCount = ref(0);
                 const cpuCount = navigator.hardwareConcurrency;
                 function addWorker() {
                     const worker = new Worker('./worker.js');
                     workers.push(worker);
+                    let pending = true;
+                    pendingCount.value++;
                     workerCount.value++;
                     worker.addEventListener('error', (e) => {
                         workers.splice(workers.indexOf(worker), 1);
                         workerCount.value--;
+                        if (pending) pendingCount.value--;
                         console.error('worker error', e);
                     });
                     worker.addEventListener('message', (e) => {
-                        iterationCount.value++;
+                        if (e.data == 'iteration') {
+                            iterationCount.value++;
+                        } else if (e.data == 'ready') {
+                            pendingCount.value--;
+                            pending = false;
+                        }
                     });
                     resetCounter();
                 }
@@ -62,7 +71,7 @@
                 setInterval(() => {
                     const now = Date.now();
                     iterationSpeed.value = iterationCount.value / ((now - startTime) / 1000);
-                    iterationSpeedPerWorker.value = !workerCount.value ? 0 : iterationSpeed.value / workerCount.value;
+                    iterationSpeedPerWorker.value = !workerCount.value ? 0 : (iterationSpeed.value / workerCount.value);
                 }, 1000);
 
                 function resetCounter() {
@@ -72,6 +81,7 @@
 
                 return {
                     workerCount,
+                    pendingCount,
                     cpuCount,
                     iterationCount,
                     iterationSpeed,
@@ -94,6 +104,7 @@
                             workers.pop().terminate();
                         }
                         workerCount.value = 0;
+                        resetCounter();
                     },
                 }
             }
