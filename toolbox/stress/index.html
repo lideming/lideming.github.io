@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.26/dist/vue.global.prod.js"></script>
+    <script src="https://lf6-cdn-tos.bytecdntp.com/cdn/expire-1-M/vue/3.2.31/vue.global.prod.js"></script>
     <title>JS Stress</title>
     <style>
         body {
@@ -21,12 +21,13 @@
 </head>
 
 <body>
-    <div class="app">
-        <h1>JS Stress / Benchmark</h1>
-        <h2>CPU Stress</h2>
+    <h1>JS Stress / Benchmark</h1>
+    <h2>CPU Stress</h2>
+    <div class="app" hidden>
         <div>Iteration count: {{iterationCount}} million</div>
-        <div>Iteration speed (total): {{iterationSpeed.toFixed(3)}} million/s</div>
-        <div>Iteration speed (per worker): {{ !iterationSpeedPerWorker ? 'N/A' : iterationSpeedPerWorker.toFixed(3)}} million/s</div>
+        <div>Iteration speed (avg total): {{iterationSpeed.toFixed(3)}} million/s</div>
+        <div>Iteration speed (avg per worker): {{ !iterationSpeedPerWorker ? 'N/A' : iterationSpeedPerWorker.toFixed(3)}} million/s</div>
+        <div>Iteration speed (avg last 3 sec): {{lastSpeed.toFixed(3)}} million/s</div>
 
         <h3>Workers Control</h3>
         <div>Worker count: {{workerCount}} ({{pendingCount}} pending)</div>
@@ -76,16 +77,30 @@
 
                 const iterationSpeed = ref(0);
                 const iterationSpeedPerWorker = ref(0);
+                const lastSpeed = ref(0);
                 let startTime = Date.now();
+                let lastTime = Date.now();
+                let lastIteration = 0;
+                let lastTimerCounter = 0;
+                const lastMeasureDuration = 3;
                 setInterval(() => {
+                    lastTimerCounter++;
                     const now = Date.now();
                     iterationSpeed.value = iterationCount.value / ((now - startTime) / 1000);
                     iterationSpeedPerWorker.value = !workerCount.value ? 0 : (iterationSpeed.value / workerCount.value);
+                    if (lastTimerCounter % lastMeasureDuration === 0) {
+                        lastSpeed.value = (iterationCount.value - lastIteration) / ((now - lastTime) / 1000);
+                        lastTime = now;
+                        lastIteration = iterationCount.value;
+                    }
                 }, 1000);
 
                 function resetCounter() {
                     startTime = Date.now();
                     iterationCount.value = 0;
+                    lastTime = startTime;
+                    lastTimerCounter = 0;
+                    lastIteration = 0;
                 }
 
                 /** @type {Array<{ worker: Worker; size: number; }>} */
@@ -135,6 +150,7 @@
                     iterationCount,
                     iterationSpeed,
                     iterationSpeedPerWorker,
+                    lastSpeed,
                     addWorker,
                     addCpuCountWorkers() {
                         for (let i = 0; i < cpuCount; i++) {
@@ -163,6 +179,7 @@
                 }
             }
         }).mount('.app');
+        document.querySelector('.app').hidden = false;
     </script>
 </body>
 
