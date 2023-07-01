@@ -9,11 +9,17 @@ self.addEventListener('message', (e) => {
 postMessage('ready');
 
 function stressCpu() {
+    while (1) {
+        cpuPayload();
+        postMessage('iteration');
+    }
+}
+
+function cpuPayload() {
     let counter = 0;
     while (1) {
-        if (++counter >= 1e8) { // 1 million
-            postMessage('iteration');
-            counter = 0;
+        if (++counter >= 1e7) { // 0.1 million
+            return;
         }
     }
 }
