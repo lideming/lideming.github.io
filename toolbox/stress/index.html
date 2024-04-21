@@ -17,6 +17,10 @@
             padding: 10px;
             margin: 10px;
         }
+
+        label {
+            margin-right: 10px;
+        }
     </style>
 </head>
 
@@ -30,11 +34,21 @@
         <div>Iteration speed (avg last 1 sec): {{lastSpeed.toFixed(1)}} million/s</div>
 
         <h3>Workers Control</h3>
-        <div>Worker count: {{workerCount}} ({{pendingCount}} pending)</div>
-        <button @click="removeAllWorkers">-ALL</button>
-        <button @click="removeWorker">-1</button>
+        <div>CPU worker count: {{workerCount}}{{pendingCount ? ` (creating ${pendingCount})` : ''}}</div>
+        <div>
+            <template v-for="type in cpuStressTypes">
+                <label :for="'cpu' + type">
+                    <input type="radio" v-model="cpuStressType" :value="type" :id="'cpu' + type" />
+                    {{type}}
+                </label>
+            </template>
+        </div>
+        <button @click="removeAllWorkers" :disabled="workerCount + pendingCount == 0">STOP</button>
+        <!-- <button @click="removeWorker">-1</button>
         <button @click="addWorker">+1</button>
-        <button @click="addCpuCountWorkers">+{{cpuCount}}</button>
+        <button @click="addWorkers(~~(cpuCount / 2))">+{{~~(cpuCount / 2)}}</button>
+        <button @click="addWorkers(cpuCount)">+{{cpuCount}}</button> -->
+        <button v-for="count in cpuCount" @click="setWorkers(count)" :disabled="workerCount + pendingCount == count">{{count}}</button>
 
         <h2>Memory Stress</h2>
         <div>Allocated Memory: {{allocatedMemory}} MB{{ memoryError && ` (${memoryError})` }}</div>
@@ -43,17 +57,19 @@
         <button @click="addMemory(1024)">+1024 MB</button>
     </div>
     <script>
-        const { createApp, ref } = Vue;
+        const { createApp, ref, watch } = Vue;
         createApp({
             setup() {
+                const cpuStressTypes = ['v1', 'v2a', 'v2b']
+                const cpuStressType = ref('v1')
                 const workerCount = ref(0);
                 const pendingCount = ref(0);
-                const workers = [];
+                const workers = []; // its length is always workerCount + pendingCount
                 let iterationCount = 0;
                 const displayIterationCount = ref(iterationCount);
                 const cpuCount = navigator.hardwareConcurrency;
                 function addWorker() {
-                    const worker = new Worker('./worker.js');
+                    const worker = createWorker();
                     workers.push(worker);
                     let pending = true;
                     pendingCount.value++;
@@ -72,9 +88,42 @@
                             pending = false;
                         }
                     });
-                    worker.postMessage({ action: 'cpu' })
+                    worker.postMessage({ action: 'cpu', type: cpuStressType.value })
                     resetCounter();
                 }
+                function addWorkers(count) {
+                    for (let i = 0; i < count; i++) {
+                        addWorker();
+                    }
+                }
+                function setWorkers(count) {
+                    while (workers.length > count) {
+                        removeWorker();
+                    }
+                    while (count > workers.length) {
+                        addWorker();
+                    }
+                }
+                function removeWorker() {
+                    if (workers.length) {
+                        workers.pop().terminate();
+                        workerCount.value--;
+                        resetCounter();
+                    }
+                }
+                function removeAllWorkers() {
+                    while (workers.length) {
+                        workers.pop().terminate();
+                    }
+                    workerCount.value = 0;
+                    resetCounter();
+                }
+                function recreateWorkers() {
+                    const count = workers.length;
+                    removeAllWorkers();
+                    setWorkers(count);
+                }
+                watch(cpuStressType, () => recreateWorkers())
 
                 const iterationSpeed = ref(0);
                 const iterationSpeedPerWorker = ref(0);
@@ -118,7 +167,7 @@
                     let worker = memoryWorkers.find(w => (1024 - w.size) >= availableSize);
                     if (!worker) {
                         worker = {
-                            worker: new Worker('./worker.js'),
+                            worker: createWorker(),
                             size: 0
                         };
                         worker.worker.addEventListener('message', (e) => {
@@ -143,6 +192,8 @@
 
 
                 return {
+                    cpuStressTypes,
+                    cpuStressType,
                     workerCount,
                     pendingCount,
                     cpuCount,
@@ -151,26 +202,9 @@
                     iterationSpeedPerWorker,
                     lastSpeed,
                     addWorker,
-                    addCpuCountWorkers() {
-                        for (let i = 0; i < cpuCount; i++) {
-                            addWorker();
-                        }
-                    },
-                    removeWorker() {
-                        if (workers.length) {
-                            workers.pop().terminate();
-                            workerCount.value--;
-                            resetCounter();
-                        }
-                    },
-                    removeAllWorkers() {
-                        while (workers.length) {
-                            workers.pop().terminate();
-                        }
-                        workerCount.value = 0;
-                        resetCounter();
-                    },
-
+                    addWorkers,
+                    setWorkers,
+                    removeAllWorkers,
                     allocatedMemory,
                     memoryError,
                     addMemory,
@@ -179,6 +213,105 @@
             }
         }).mount('.app');
         document.querySelector('.app').hidden = false;
+
+        function workerMain() {
+            self.addEventListener('message', (e) => {
+                if (e.data.action == 'cpu') {
+                    stressCpu(e.data);
+                } else if (e.data.action == 'mem') {
+                    stressMem(e.data);
+                }
+            });
+
+            postMessage('ready');
+
+            function stressCpu({ type }) {
+                while (1) {
+                    if (type == 'v1') {
+                        cpuPayload1();
+                    } else if (type == 'v2a') {
+                        cpuPayload2a();
+                    }  else if (type == 'v2b') {
+                        cpuPayload2b();
+                    } else {
+                        throw new Error('unknown cpu stress type ' + type);
+                    }
+                    postMessage('iteration');
+                }
+            }
+
+            function cpuPayload1() {
+                let counter = 0;
+                while (1) {
+                    if (++counter >= 1e7) { // 0.1 million
+                        return;
+                    }
+                }
+            }
+
+            function cpuPayload2a() {
+                const arr = [];
+                for (let i = 0; i < 16; i++) {
+                    arr.push(1);
+                }
+                let counter = 0;
+                while (1) {
+                    const a1 = arr[counter % arr.length];
+                    counter += a1;
+                    if (counter >= 1e7) { // 0.1 million
+                        return;
+                    }
+                }
+            }
+
+            function cpuPayload2b() {
+                const arr = [];
+                for (let i = 0; i < 16; i++) {
+                    arr.push(1);
+                }
+                let counter = 0;
+                while (1) {
+                    const a1 = arr[counter % arr.length];
+                    const a2 = arr[(counter + 1) % arr.length];
+                    const a3 = arr[(counter + 2) % arr.length];
+                    const a4 = arr[(counter + 3) % arr.length];
+                    const a5 = arr[(counter + 4) % arr.length];
+                    const a6 = arr[(counter + 5) % arr.length];
+                    const a7 = arr[(counter + 6) % arr.length];
+                    const a8 = arr[(counter + 7) % arr.length];
+                    counter += a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8;
+                    if (counter >= 1e7) { // 0.1 million
+                        return;
+                    }
+                }
+            }
+
+            const memoryArray = [];
+
+            function stressMem(data) {
+                const { size } = data;
+                for (let i = 0; i < size; i += 128) {
+                    allocate(Math.min(128, size - i));
+                }
+            }
+
+            function allocate(size) {
+                const buffer = new Uint8Array(size * 1024 * 1024);
+                for (let i = 0; i < buffer.length; i++) {
+                    buffer[i] = i % 256;
+                }
+                memoryArray.push(buffer);
+                postMessage({
+                    action: 'mem',
+                    size: size,
+                });
+            }
+        }
+        const workerCode = `(${workerMain.toString()})()`;
+        const workerUrl = URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' }));
+        function createWorker() {
+            return new Worker(workerUrl);
+        }
     </script>
 </body>
 
